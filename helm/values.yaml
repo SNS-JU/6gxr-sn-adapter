@@ -1,0 +1,6 @@
+replicaCount: 1
+
+mongodb:
+  image:
+    repository: mongo
+    tag: latest

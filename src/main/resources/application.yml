@@ -1,0 +1,46 @@
+project:
+  version: 3.1.0
+
+server:
+  servlet:
+    context-path: /south-node-adapter/v3
+  
+spring:
+  application:
+    name: south-node-adapter
+  data:
+    mongodb:
+      #LOCAL
+      uri: mongodb://localhost:27017/6GXR
+      #DOCKER
+      #uri: mongodb://mongodb-6g-xr:27017/6GXR
+      #HELM
+      #uri: mongodb://10.15.126.160:30018/6GXR
+
+feign:
+  client:
+    config:
+      default:
+        retryer:
+          maxAttempts: 1
+
+gpsis[0]: msisdn-49165001039
+gpsis[1]: msisdn-49165001028
+gpsis[2]: msisdn-49165001035
+gpsis[3]: msisdn-49165001036
+gpsis[4]: msisdn-49165001037
+gpsis[5]: msisdn-49165001038
+
+tcSlices:
+  madridLow:
+    ieapZone: madridzone
+    nefSlice: madrid-low
+  madridHigh:
+    ieapZone: madridzone
+    nefSlice: madrid-high
+  barcelonaLow:
+    ieapZone: barcelonazone
+    nefSlice: barcelona-low
+  barcelonaHigh:
+    ieapZone: barcelonazone
+    nefSlice: barcelona-high

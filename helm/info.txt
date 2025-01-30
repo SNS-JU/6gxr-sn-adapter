@@ -1,0 +1,5 @@
+Recuerda que para lanzar este Helm Chart, puedes usar los siguientes comandos:
+helm install my-release ./existserver-chart
+
+Y para personalizar valores:
+helm install my-release ./existserver-chart --set PREFIX=my-prefix --set DOCKER_REPOSITORY=my-repo --set DOCKER_IMAGE=my-image
