@@ -2,6 +2,7 @@ package com.capgemini.south_node_adapter.infrastructure.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -23,6 +24,7 @@ import com.capgemini.south_node_adapter.infrastructure.feign.IEAPClientNBI;
 import com.capgemini.south_node_adapter.infrastructure.feign.model.EnterpriseDetails;
 import com.capgemini.south_node_adapter.infrastructure.feign.model.Flavour;
 import com.capgemini.south_node_adapter.infrastructure.feign.model.IEAPApplication;
+import com.capgemini.south_node_adapter.infrastructure.feign.model.Oauth2TokenBody;
 import com.capgemini.south_node_adapter.infrastructure.feign.model.ZoneDetails;
 import com.capgemini.south_node_adapter.infrastructure.persistence.entity.Session;
 import com.capgemini.south_node_adapter.infrastructure.persistence.repository.SessionRepository;
@@ -40,7 +42,7 @@ class ApplicationsServiceImplTest {
 		void whenSessionExists() {
 
 			Token token = new Token("accessToken", "tokenType", 1, "scope");
-			Session session = new Session("user", "appProviderId", token);
+			Session session = new Session("user", "appProviderId", token, LocalDateTime.now());
 			SessionRepository sessionRepository = Mockito.mock(SessionRepository.class);
 			Mockito.doReturn(Optional.of(session)).when(sessionRepository).findById(Mockito.anyString());
 
@@ -51,6 +53,7 @@ class ApplicationsServiceImplTest {
 			List<IEAPApplication> applications = List.of(sample, sample, sample);
 			
 			IEAPClientNBI ieapClientNBI = Mockito.mock(IEAPClientNBI.class);
+			Mockito.doReturn(token).when(ieapClientNBI).createAccessToken(Mockito.any(Oauth2TokenBody.class));
 			Mockito.doReturn(applications).when(ieapClientNBI).getApplications(Mockito.anyString(), Mockito.anyString());
 			EnterpriseDetails user = new EnterpriseDetails();
 			user.setDomainName(StringUtils.EMPTY);
@@ -103,11 +106,12 @@ class ApplicationsServiceImplTest {
 		void whenIEAPClientException() {
 
 			Token token = new Token("accessToken", "tokenType", 1, "scope");
-			Session session = new Session("user", "appProviderId", token);
+			Session session = new Session("user", "appProviderId", token, LocalDateTime.now());
 			SessionRepository sessionRepository = Mockito.mock(SessionRepository.class);
 			Mockito.doReturn(Optional.of(session)).when(sessionRepository).findById(Mockito.anyString());
 
 			IEAPClientNBI ieapClientNBI = Mockito.mock(IEAPClientNBI.class);
+			Mockito.doReturn(token).when(ieapClientNBI).createAccessToken(Mockito.any(Oauth2TokenBody.class));
 			Mockito.doThrow(new FeignException.InternalServerError(StringUtils.EMPTY,
 					Request.create(HttpMethod.GET, StringUtils.EMPTY, Map.of(), null, null, null), null, null))
 					.when(ieapClientNBI).getApplications(Mockito.anyString(), Mockito.anyString());

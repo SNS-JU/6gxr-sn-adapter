@@ -2,6 +2,7 @@ package com.capgemini.south_node_adapter.infrastructure.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -26,6 +27,7 @@ import com.capgemini.south_node_adapter.infrastructure.configuration.XRPropertie
 import com.capgemini.south_node_adapter.infrastructure.feign.IEAPClientNBI;
 import com.capgemini.south_node_adapter.infrastructure.feign.NEFClient;
 import com.capgemini.south_node_adapter.infrastructure.feign.model.EnterpriseDetails;
+import com.capgemini.south_node_adapter.infrastructure.feign.model.Oauth2TokenBody;
 import com.capgemini.south_node_adapter.infrastructure.feign.model.ZoneDetails;
 import com.capgemini.south_node_adapter.infrastructure.persistence.entity.Session;
 import com.capgemini.south_node_adapter.infrastructure.persistence.entity.SouthNodeExperiment;
@@ -46,7 +48,7 @@ class ExperimentServiceImplTest {
 		void whenSessionExists() {
 
 			SessionRepository sessionRepository = Mockito.mock(SessionRepository.class);
-			Session session = new Session("user", "appProviderId", new Token("accessToken", "tokenType", 1, "scope"));
+			Session session = new Session("user", "appProviderId", new Token("accessToken", "tokenType", 1, "scope"), LocalDateTime.now());
 			Mockito.doReturn(Optional.of(session)).when(sessionRepository).findById(Mockito.anyString());
 
 			SouthNodeNSTRepository southNodeNSTRepository = Mockito.mock(SouthNodeNSTRepository.class);
@@ -85,10 +87,11 @@ class ExperimentServiceImplTest {
 		void whenSessionExists() {
 
 			SessionRepository sessionRepository = Mockito.mock(SessionRepository.class);
-			Session session = new Session("user", "appProviderId", new Token("accessToken", "tokenType", 1, "scope"));
+			Session session = new Session("user", "appProviderId", new Token("accessToken", "tokenType", 1, "scope"), LocalDateTime.now());
 			Mockito.doReturn(Optional.of(session)).when(sessionRepository).findById(Mockito.anyString());
 
 			IEAPClientNBI ieapClientNBI = Mockito.mock(IEAPClientNBI.class);
+			Mockito.doReturn(new Token("accessToken", "tokenType", 1, "scope")).when(ieapClientNBI).createAccessToken(Mockito.any(Oauth2TokenBody.class));
 			EnterpriseDetails user = new EnterpriseDetails();
 			Mockito.doReturn(user).when(ieapClientNBI).getUser(Mockito.anyString(), Mockito.anyString());
 			ZoneDetails zoneDetails = new ZoneDetails();
@@ -163,10 +166,11 @@ class ExperimentServiceImplTest {
 		void whenIEAPClientException() {
 
 			SessionRepository sessionRepository = Mockito.mock(SessionRepository.class);
-			Session session = new Session("user", "appProviderId", new Token("accessToken", "tokenType", 1, "scope"));
+			Session session = new Session("user", "appProviderId", new Token("accessToken", "tokenType", 1, "scope"), LocalDateTime.now());
 			Mockito.doReturn(Optional.of(session)).when(sessionRepository).findById(Mockito.anyString());
 
 			IEAPClientNBI ieapClientNBI = Mockito.mock(IEAPClientNBI.class);
+			Mockito.doReturn(new Token("accessToken", "tokenType", 1, "scope")).when(ieapClientNBI).createAccessToken(Mockito.any(Oauth2TokenBody.class));
 			EnterpriseDetails user = new EnterpriseDetails();
 			Mockito.doReturn(user).when(ieapClientNBI).getUser(Mockito.anyString(), Mockito.anyString());
 			ZoneDetails zoneDetails = new ZoneDetails();
@@ -214,10 +218,11 @@ class ExperimentServiceImplTest {
 		void whenIEAPClientZoneException() {
 
 			SessionRepository sessionRepository = Mockito.mock(SessionRepository.class);
-			Session session = new Session("user", "appProviderId", new Token("accessToken", "tokenType", 1, "scope"));
+			Session session = new Session("user", "appProviderId", new Token("accessToken", "tokenType", 1, "scope"), LocalDateTime.now());
 			Mockito.doReturn(Optional.of(session)).when(sessionRepository).findById(Mockito.anyString());
 
 			IEAPClientNBI ieapClientNBI = Mockito.mock(IEAPClientNBI.class);
+			Mockito.doReturn(new Token()).when(ieapClientNBI).createAccessToken(Mockito.any(Oauth2TokenBody.class));
 			EnterpriseDetails user = new EnterpriseDetails();
 			Mockito.doReturn(user).when(ieapClientNBI).getUser(Mockito.anyString(), Mockito.anyString());
 			ZoneDetails zoneDetails = new ZoneDetails();
@@ -266,7 +271,7 @@ class ExperimentServiceImplTest {
 		void whenSessionExists() {
 
 			SessionRepository sessionRepository = Mockito.mock(SessionRepository.class);
-			Session session = new Session("user", "appProviderId", new Token("accessToken", "tokenType", 1, "scope"));
+			Session session = new Session("user", "appProviderId", new Token("accessToken", "tokenType", 1, "scope"), LocalDateTime.now());
 			Mockito.doReturn(Optional.of(session)).when(sessionRepository).findById(Mockito.anyString());
 
 			SouthNodeNSTRepository southNodeNSTRepository = Mockito.mock(SouthNodeNSTRepository.class);
@@ -303,7 +308,7 @@ class ExperimentServiceImplTest {
 		void whenBadTrialId() {
 
 			SessionRepository sessionRepository = Mockito.mock(SessionRepository.class);
-			Session session = new Session("user", "appProviderId", new Token("accessToken", "tokenType", 1, "scope"));
+			Session session = new Session("user", "appProviderId", new Token("accessToken", "tokenType", 1, "scope"), LocalDateTime.now());
 			Mockito.doReturn(Optional.of(session)).when(sessionRepository).findById(Mockito.anyString());
 
 			SouthNodeNSTRepository southNodeNSTRepository = Mockito.mock(SouthNodeNSTRepository.class);
@@ -326,7 +331,7 @@ class ExperimentServiceImplTest {
 		void whenSessionExists() {
 
 			SessionRepository sessionRepository = Mockito.mock(SessionRepository.class);
-			Session session = new Session("user", "appProviderId", new Token("accessToken", "tokenType", 1, "scope"));
+			Session session = new Session("user", "appProviderId", new Token("accessToken", "tokenType", 1, "scope"), LocalDateTime.now());
 			Mockito.doReturn(Optional.of(session)).when(sessionRepository).findById(Mockito.anyString());
 
 			SouthNodeNSTRepository southNodeNSTRepository = Mockito.mock(SouthNodeNSTRepository.class);
@@ -338,6 +343,7 @@ class ExperimentServiceImplTest {
 					Mockito.anyInt());
 
 			IEAPClientNBI ieapClientNBI = Mockito.mock(IEAPClientNBI.class);
+			Mockito.doReturn(new Token()).when(ieapClientNBI).createAccessToken(Mockito.any(Oauth2TokenBody.class));
 
 			ExperimentService experimentService = ExperimentServiceImpl.builder().ieapClientNBI(ieapClientNBI)
 					.sessionRepository(sessionRepository).southNodeNSTRepository(southNodeNSTRepository).build();
@@ -375,7 +381,7 @@ class ExperimentServiceImplTest {
 		void whenIEAPClientException() {
 
 			SessionRepository sessionRepository = Mockito.mock(SessionRepository.class);
-			Session session = new Session("user", "appProviderId", new Token("accessToken", "tokenType", 1, "scope"));
+			Session session = new Session("user", "appProviderId", new Token("accessToken", "tokenType", 1, "scope"), LocalDateTime.now());
 			Mockito.doReturn(Optional.of(session)).when(sessionRepository).findById(Mockito.anyString());
 
 			SouthNodeNSTRepository southNodeNSTRepository = Mockito.mock(SouthNodeNSTRepository.class);
@@ -387,6 +393,7 @@ class ExperimentServiceImplTest {
 					Mockito.anyInt());
 
 			IEAPClientNBI ieapClientNBI = Mockito.mock(IEAPClientNBI.class);
+			Mockito.doReturn(new Token()).when(ieapClientNBI).createAccessToken(Mockito.any(Oauth2TokenBody.class));
 			Mockito.doThrow(new FeignException.InternalServerError(StringUtils.EMPTY,
 					Request.create(HttpMethod.DELETE, StringUtils.EMPTY, Map.of(), null, null, null), null, null))
 					.when(ieapClientNBI).terminateApplication(Mockito.anyString(), Mockito.anyString(),
@@ -404,7 +411,7 @@ class ExperimentServiceImplTest {
 		void whenIEAPClientBadTrialId() {
 
 			SessionRepository sessionRepository = Mockito.mock(SessionRepository.class);
-			Session session = new Session("user", "appProviderId", new Token("accessToken", "tokenType", 1, "scope"));
+			Session session = new Session("user", "appProviderId", new Token("accessToken", "tokenType", 1, "scope"), LocalDateTime.now());
 			Mockito.doReturn(Optional.of(session)).when(sessionRepository).findById(Mockito.anyString());
 
 			SouthNodeNSTRepository southNodeNSTRepository = Mockito.mock(SouthNodeNSTRepository.class);
