@@ -23,29 +23,40 @@ public class ExperimentApiController implements ExperimentApi {
 	ExperimentService experimentService;
 
 	@Override
+	public ResponseEntity<Void> experimentExperimentNameDelete(@NotNull @Valid String sessionId,
+			String experimentName) {
+		return this.experimentService.experimentExperimentNameDelete(sessionId, experimentName);	}
+
+	@Override
+	public ResponseEntity<NetworkServiceTemplate> experimentExperimentNameGet(@NotNull @Valid String sessionId,
+			String experimentName) {
+		return this.experimentService.experimentExperimentNameGet(sessionId, experimentName);
+	}
+
+	@Override
 	public ResponseEntity<List<NetworkServiceTemplate>> experimentGet(@NotNull @Valid String sessionId) {
 		return this.experimentService.experimentGet(sessionId);
 	}
 
 	@Override
-	public ResponseEntity<List<ExperimentError>> experimentPost(@NotNull @Valid String sessionId,
-			@Valid NetworkServiceTemplate body) {
+	public ResponseEntity<Void> experimentPost(@NotNull @Valid String sessionId, @Valid NetworkServiceTemplate body) {
 		
 		if (!body.getTargetNode().equals(TargetNodeEnum.SOUTH)) {
-			return new ResponseEntity<List<ExperimentError>>(HttpStatus.FORBIDDEN);
+			return new ResponseEntity<Void>(HttpStatus.FORBIDDEN);
 		}
 
 		return this.experimentService.experimentPost(sessionId, body);
 	}
 
 	@Override
-	public ResponseEntity<String> experimentTrialIdDelete(@NotNull @Valid String sessionId, String trialId) {
-		return this.experimentService.experimentTrialIdDelete(sessionId, trialId);
+	public ResponseEntity<List<ExperimentError>> experimentRunExperimentNamePost(@NotNull @Valid String sessionId,
+			String experimentName) {
+		return this.experimentService.experimentRunExperimentNamePost(sessionId, experimentName);
 	}
 
 	@Override
-	public ResponseEntity<NetworkServiceTemplate> experimentTrialIdGet(@NotNull @Valid String sessionId,
-			String trialId) {
-		return this.experimentService.experimentTrialIdGet(sessionId, trialId);
+	public ResponseEntity<List<ExperimentError>> experimentTerminateExperimentNameDelete(
+			@NotNull @Valid String sessionId, String experimentName) {
+		return this.experimentService.experimentTerminateExperimentNameDelete(sessionId, experimentName);
 	}
 }

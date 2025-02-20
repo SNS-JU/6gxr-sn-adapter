@@ -3,6 +3,7 @@ package com.capgemini.south_node_adapter.infrastructure.service;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -22,9 +23,11 @@ import com.capgemini.south_node_adapter.infrastructure.feign.IEAPClientNBI;
 import com.capgemini.south_node_adapter.infrastructure.feign.NEFClient;
 import com.capgemini.south_node_adapter.infrastructure.feign.model.EnterpriseDetails;
 import com.capgemini.south_node_adapter.infrastructure.feign.model.ZoneDetails;
+import com.capgemini.south_node_adapter.infrastructure.persistence.entity.ExperimentLock;
 import com.capgemini.south_node_adapter.infrastructure.persistence.entity.Session;
 import com.capgemini.south_node_adapter.infrastructure.persistence.entity.SouthNodeExperiment;
 import com.capgemini.south_node_adapter.infrastructure.persistence.entity.SouthNodeExperimentIEAPInstance;
+import com.capgemini.south_node_adapter.infrastructure.persistence.repository.LockRepository;
 import com.capgemini.south_node_adapter.infrastructure.persistence.repository.SessionRepository;
 import com.capgemini.south_node_adapter.infrastructure.persistence.repository.SouthNodeNSTRepository;
 
@@ -43,6 +46,37 @@ public class ExperimentServiceImpl implements ExperimentService {
 	XRProperties xrproperties;
 
 	NEFClient nefClient;
+	
+	LockRepository lockRepository;
+
+	@Override
+	public ResponseEntity<Void> experimentExperimentNameDelete(String sessionId, String experimentName) {
+
+		Optional<Session> session = SessionUtil.getSession(sessionId, sessionRepository);
+		if (session.isEmpty()) {
+			return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+		}
+
+		this.southNodeNSTRepository.deleteByUserAndExperimentName(session.get().getUser(), experimentName);
+		return new ResponseEntity<>(HttpStatus.ACCEPTED);
+	}
+
+	@Override
+	public ResponseEntity<NetworkServiceTemplate> experimentExperimentNameGet(String sessionId, String experimentName) {
+
+		Optional<Session> session = SessionUtil.getSession(sessionId, sessionRepository);
+		if (session.isEmpty()) {
+			return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+		}
+
+		try {
+			NetworkServiceTemplate experiment = this.southNodeNSTRepository
+					.findByUserAndExperimentName(sessionId, experimentName).getNetworkServiceTemplate();
+			return new ResponseEntity<>(experiment, HttpStatus.OK);
+		} catch (FeignException e) {
+			return new ResponseEntity<>(HttpStatus.valueOf(e.status()));
+		}
+	}
 
 	@Override
 	public ResponseEntity<List<NetworkServiceTemplate>> experimentGet(String sessionId) {
@@ -59,17 +93,55 @@ public class ExperimentServiceImpl implements ExperimentService {
 	}
 
 	@Override
-	public ResponseEntity<List<ExperimentError>> experimentPost(String sessionId, NetworkServiceTemplate body) {
+	public ResponseEntity<Void> experimentPost(String sessionId, NetworkServiceTemplate body) {
 
 		Optional<Session> session = SessionUtil.getSession(sessionId, sessionRepository);
 		if (session.isEmpty()) {
 			return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
 		}
 
-		SouthNodeExperiment dbExperiment = new SouthNodeExperiment();
-		dbExperiment.setUser(session.get().getUser());
-		dbExperiment.setTrialId(body.getTrialId());
-		dbExperiment.setNetworkServiceTemplate(body);
+		if (StringUtils.isEmpty(body.getExperimentName())) {
+			return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+		}
+
+		if (!Objects.isNull(southNodeNSTRepository.findByUserAndExperimentName(session.get().getUser(),
+				body.getExperimentName()))) {
+			return new ResponseEntity<>(HttpStatus.CONFLICT);
+		}
+
+		SouthNodeExperiment experiment = new SouthNodeExperiment();
+		experiment.setUser(session.get().getUser());
+		experiment.setExperimentName(body.getExperimentName());
+		experiment.setNetworkServiceTemplate(body);
+
+		experiment.getNetworkServiceTemplate().getSouthNodeAdapterNetworkServiceTemplate()
+				.setStatus(StatusEnum.CREATED);
+		southNodeNSTRepository.save(experiment);
+
+		return new ResponseEntity<>(HttpStatus.ACCEPTED);
+	}
+
+	@Override
+	public ResponseEntity<List<ExperimentError>> experimentRunExperimentNamePost(String sessionId,
+			String experimentName) {
+
+		Optional<Session> session = SessionUtil.getSession(sessionId, sessionRepository);
+		if (session.isEmpty()) {
+			return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+		}
+		
+		try {
+			this.acquireLock();
+		}
+		catch(Exception e) {
+			return new ResponseEntity<>(HttpStatus.LOCKED);
+		}
+
+		SouthNodeExperiment experiment = this.southNodeNSTRepository
+				.findByUserAndExperimentName(session.get().getUser(), experimentName);
+		if (Objects.isNull(experiment)) {
+			return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+		}
 
 		List<ExperimentError> errors = new ArrayList<>();
 		Map<String, ZoneDetails> zones;
@@ -85,23 +157,72 @@ public class ExperimentServiceImpl implements ExperimentService {
 			return new ResponseEntity<>(errors, HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 
-		dbExperiment.setIeapInstances(this.feignIEAPApplicationPost(session.get(), body, zones, errors));
-		this.feignNEFApplicationPost(session.get(), body, zones, errors);
+		experiment.setIeapInstances(
+				this.feignIEAPApplicationPost(session.get(), experiment.getNetworkServiceTemplate(), zones, errors));
+		this.feignNEFApplicationPost(experiment.getNetworkServiceTemplate(), zones, errors);
 
 		if (errors.isEmpty()) {
 
-			body.getSouthNodeAdapterNetworkServiceTemplate().setStatus(StatusEnum.OK);
-			southNodeNSTRepository.save(dbExperiment);
+			experiment.getNetworkServiceTemplate().getSouthNodeAdapterNetworkServiceTemplate()
+					.setStatus(StatusEnum.LAUNCH_SUCCESS);
+			southNodeNSTRepository.save(experiment);
 
 			return new ResponseEntity<>(HttpStatus.ACCEPTED);
 		} else {
 
-			body.getSouthNodeAdapterNetworkServiceTemplate().setStatus(StatusEnum.KO);
-			southNodeNSTRepository.save(dbExperiment);
-			this.feignTerminateAllInstances(dbExperiment, session.get(), errors);
+			experiment.getNetworkServiceTemplate().getSouthNodeAdapterNetworkServiceTemplate()
+					.setStatus(StatusEnum.LAUNCH_FAILED);
+			southNodeNSTRepository.save(experiment);
+			this.feignTerminateAllInstances(experiment, session.get(), errors);
+			
+            this.releaseLock();
+			return new ResponseEntity<>(errors, HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+	}
+
+	@Override
+	public ResponseEntity<List<ExperimentError>> experimentTerminateExperimentNameDelete(String sessionId,
+			String experimentName) {
+
+		Optional<Session> session = SessionUtil.getSession(sessionId, sessionRepository);
+		if (session.isEmpty()) {
+			return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+		}
+
+		SouthNodeExperiment experiment = this.southNodeNSTRepository.findByUserAndExperimentName(session.get().getUser(),
+				experimentName);
+		List<ExperimentError> errors = new ArrayList<>();
+		this.feignTerminateAllInstances(experiment, session.get(), errors);
+		this.releaseLock();
+
+		if (errors.isEmpty()) {
+
+			experiment.getNetworkServiceTemplate().getSouthNodeAdapterNetworkServiceTemplate()
+					.setStatus(StatusEnum.TERMINATE_SUCCESS);
+			southNodeNSTRepository.save(experiment);
+			
+			return new ResponseEntity<>(HttpStatus.ACCEPTED);
+		} else {
+
+			experiment.getNetworkServiceTemplate().getSouthNodeAdapterNetworkServiceTemplate()
+					.setStatus(StatusEnum.TERMINATE_FAILED);
+			southNodeNSTRepository.save(experiment);
 
 			return new ResponseEntity<>(errors, HttpStatus.INTERNAL_SERVER_ERROR);
 		}
+	}
+
+	private Map<String, ZoneDetails> getUserIEAPZones(Session session, IEAPClientNBI ieapClientNBI,
+			List<ExperimentError> errors) {
+
+		SessionUtil.checkAndRefreshSessionIeapTokenIfExpired(session, ieapClientNBI, sessionRepository);
+		EnterpriseDetails user = ieapClientNBI.getUser(session.getAppProviderId(),
+				session.getIeapToken().getAccessToken());
+
+		String domain = StringUtils.isEmpty(user.getDomainName()) ? "OPDefault" : user.getDomainName();
+		List<ZoneDetails> zones = ieapClientNBI.getZones(domain, session.getIeapToken().getAccessToken());
+
+		return zones.stream().collect(Collectors.toMap(zone -> zone.getZoneId(), zone -> zone));
 	}
 
 	private List<SouthNodeExperimentIEAPInstance> feignIEAPApplicationPost(Session session, NetworkServiceTemplate body,
@@ -142,7 +263,7 @@ public class ExperimentServiceImpl implements ExperimentService {
 		return ieapInstances;
 	}
 
-	private void feignNEFApplicationPost(Session session, NetworkServiceTemplate body, Map<String, ZoneDetails> zones,
+	private void feignNEFApplicationPost(NetworkServiceTemplate body, Map<String, ZoneDetails> zones,
 			List<ExperimentError> errors) {
 
 		body.getSouthNodeAdapterNetworkServiceTemplate().getSubscriptions().stream().forEach(subscription -> {
@@ -160,62 +281,6 @@ public class ExperimentServiceImpl implements ExperimentService {
 		});
 	}
 
-	@Override
-	public ResponseEntity<String> experimentTrialIdDelete(String sessionId, String trialId) {
-
-		Optional<Session> session = SessionUtil.getSession(sessionId, sessionRepository);
-		if (session.isEmpty()) {
-			return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
-		}
-
-		Integer trialIdNumber;
-		try {
-			trialIdNumber = Integer.valueOf(trialId);
-		} catch (NumberFormatException e) {
-			return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
-		}
-
-		SouthNodeExperiment experiment = this.southNodeNSTRepository.findByUserAndTrialId(session.get().getUser(),
-				trialIdNumber);
-		List<ExperimentError> errors = new ArrayList<>();
-		this.feignTerminateAllInstances(experiment, session.get(), errors);
-
-		if (errors.isEmpty()) {
-
-			this.southNodeNSTRepository.deleteByUserAndTrialId(session.get().getUser(), trialIdNumber);
-			return new ResponseEntity<>(HttpStatus.ACCEPTED);
-		} else {
-
-			String errorsString = errors.stream().map(error -> error.getHttpStatus() + "|" + error.getMessage())
-					.toList().toString();
-			return new ResponseEntity<>(errorsString, HttpStatus.INTERNAL_SERVER_ERROR);
-		}
-	}
-
-	@Override
-	public ResponseEntity<NetworkServiceTemplate> experimentTrialIdGet(String sessionId, String trialId) {
-
-		Optional<Session> session = SessionUtil.getSession(sessionId, sessionRepository);
-		if (session.isEmpty()) {
-			return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
-		}
-
-		Integer trialIdNumber;
-		try {
-			trialIdNumber = Integer.valueOf(trialId);
-		} catch (NumberFormatException e) {
-			return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
-		}
-
-		try {
-			NetworkServiceTemplate experiment = this.southNodeNSTRepository
-					.findByUserAndTrialId(session.get().getUser(), trialIdNumber).getNetworkServiceTemplate();
-			return new ResponseEntity<>(experiment, HttpStatus.OK);
-		} catch (FeignException e) {
-			return new ResponseEntity<>(HttpStatus.valueOf(e.status()));
-		}
-	}
-
 	private void feignTerminateAllInstances(SouthNodeExperiment experiment, Session session,
 			List<ExperimentError> errors) {
 
@@ -231,18 +296,32 @@ public class ExperimentServiceImpl implements ExperimentService {
 				errors.add(experimentError);
 			}
 		});
+		experiment.setIeapInstances(List.of());
 	}
+	
+    public void acquireLock() throws Exception {
+    	
+    	Optional<ExperimentLock> experimentLock = this.lockRepository.findById(this.xrproperties.getExperimentLockId());
+    	
+    	if(experimentLock.isEmpty()) {
+    		ExperimentLock newLock = new ExperimentLock(this.xrproperties.getExperimentLockId(), true);
+    		this.lockRepository.save(newLock);
+    	}
+    	else {
+    		
+            if(experimentLock.get().getLock()) {
+            	throw new Exception();
+            }
+            else {
+            	experimentLock.get().setLock(true);
+                this.lockRepository.save(experimentLock.get());
+            }
+    	}
+    }
 
-	private Map<String, ZoneDetails> getUserIEAPZones(Session session, IEAPClientNBI ieapClientNBI,
-			List<ExperimentError> errors) {
-		
-		SessionUtil.checkAndRefreshSessionIeapTokenIfExpired(session, ieapClientNBI, sessionRepository);
-		EnterpriseDetails user = ieapClientNBI.getUser(session.getAppProviderId(),
-				session.getIeapToken().getAccessToken());
-
-		String domain = StringUtils.isEmpty(user.getDomainName()) ? "OPDefault" : user.getDomainName();
-		List<ZoneDetails> zones = ieapClientNBI.getZones(domain, session.getIeapToken().getAccessToken());
-
-		return zones.stream().collect(Collectors.toMap(zone -> zone.getZoneId(), zone -> zone));
-	}
+    public void releaseLock() {
+    	ExperimentLock experimentLock = this.lockRepository.findById(this.xrproperties.getExperimentLockId()).get();
+        experimentLock.setLock(false);
+        this.lockRepository.save(experimentLock);
+    }
 }

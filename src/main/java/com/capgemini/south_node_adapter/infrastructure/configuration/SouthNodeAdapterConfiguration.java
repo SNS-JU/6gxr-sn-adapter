@@ -13,6 +13,7 @@ import com.capgemini.south_node_adapter.domain.service.SlicesService;
 import com.capgemini.south_node_adapter.infrastructure.feign.IEAPClientNBI;
 import com.capgemini.south_node_adapter.infrastructure.feign.NEFClient;
 import com.capgemini.south_node_adapter.infrastructure.persistence.repository.CredentialRepository;
+import com.capgemini.south_node_adapter.infrastructure.persistence.repository.LockRepository;
 import com.capgemini.south_node_adapter.infrastructure.persistence.repository.SessionRepository;
 import com.capgemini.south_node_adapter.infrastructure.persistence.repository.SouthNodeNSTRepository;
 import com.capgemini.south_node_adapter.infrastructure.service.ApplicationsServiceImpl;
@@ -58,8 +59,10 @@ public class SouthNodeAdapterConfiguration {
 
 	@Bean
 	ExperimentService experimentService(IEAPClientNBI ieapClientNBI, SessionRepository sessionRepository,
-			SouthNodeNSTRepository southNodeNSTRepository, XRProperties xrProperties, NEFClient nefClient) {
+			SouthNodeNSTRepository southNodeNSTRepository, XRProperties xrProperties, NEFClient nefClient,
+			LockRepository lockRepository) {
 		return ExperimentServiceImpl.builder().ieapClientNBI(ieapClientNBI).sessionRepository(sessionRepository)
-				.xrproperties(xrProperties).southNodeNSTRepository(southNodeNSTRepository).nefClient(nefClient).build();
+				.xrproperties(xrProperties).southNodeNSTRepository(southNodeNSTRepository).nefClient(nefClient)
+				.lockRepository(lockRepository).build();
 	}
 }

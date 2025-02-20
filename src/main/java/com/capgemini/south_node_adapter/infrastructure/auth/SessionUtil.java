@@ -26,7 +26,7 @@ public class SessionUtil {
 		boolean expired = session.getIeapTokenCreatedAt().plusSeconds(session.getIeapToken().getExpiresIn())
 				.isEqual(LocalDateTime.now())
 				|| session.getIeapTokenCreatedAt().plusSeconds(session.getIeapToken().getExpiresIn())
-						.isAfter(LocalDateTime.now());
+						.isBefore(LocalDateTime.now());
 
 		if (expired) {
 

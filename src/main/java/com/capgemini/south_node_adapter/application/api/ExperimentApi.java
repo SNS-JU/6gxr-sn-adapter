@@ -18,14 +18,14 @@ import org.springframework.web.bind.annotation.RequestParam;
 import com.capgemini.south_node_adapter.domain.model.ExperimentError;
 import com.capgemini.south_node_adapter.domain.model.NetworkServiceTemplate;
 
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
@@ -34,55 +34,66 @@ import jakarta.validation.constraints.NotNull;
 @Validated
 public interface ExperimentApi {
 
-    @Operation(summary = "", description = "Query all experiments created by the user.", security = {
-        @SecurityRequirement(name = "snAdapterOAuth", scopes = {
-                    })    }, tags={ "NST Management" })
-    @ApiResponses(value = { 
-        @ApiResponse(responseCode = "200", description = "Check status of current experiment.", content = @Content(mediaType = "application/json", array = @ArraySchema(schema = @Schema(implementation = NetworkServiceTemplate.class)))) })
-    @RequestMapping(value = "/experiment",
-        produces = { "application/json" }, 
-        method = RequestMethod.GET)
-    ResponseEntity<List<NetworkServiceTemplate>> experimentGet(@NotNull @Parameter(in = ParameterIn.QUERY, description = "" ,required=true,schema=@Schema()) @Valid @RequestParam(value = "sessionId", required = true) String sessionId
-);
+	@Operation(summary = "", description = "Delete experiment from the database.", security = {
+			@SecurityRequirement(name = "snAdapterOAuth", scopes = {}) }, tags = { "NST Management" })
+	@ApiResponses(value = { @ApiResponse(responseCode = "202", description = "Experiment data deleted.") })
+	@RequestMapping(value = "/experiment/{experimentName}", method = RequestMethod.DELETE)
+	ResponseEntity<Void> experimentExperimentNameDelete(
+			@NotNull @Parameter(in = ParameterIn.QUERY, description = "", required = true, schema = @Schema()) @Valid @RequestParam(value = "sessionId", required = true) String sessionId,
+			@Parameter(in = ParameterIn.PATH, description = "", required = true, schema = @Schema()) @PathVariable("experimentName") String experimentName);
 
+	@Operation(summary = "", description = "Query Network Service Template virtualization process.", security = {
+			@SecurityRequirement(name = "snAdapterOAuth", scopes = {}) }, tags = { "NST Management" })
+	@ApiResponses(value = {
+			@ApiResponse(responseCode = "200", description = "Check status of current experiment.", content = @Content(mediaType = "application/json", schema = @Schema(implementation = NetworkServiceTemplate.class))) })
+	@RequestMapping(value = "/experiment/{experimentName}", produces = {
+			"application/json" }, method = RequestMethod.GET)
+	ResponseEntity<NetworkServiceTemplate> experimentExperimentNameGet(
+			@NotNull @Parameter(in = ParameterIn.QUERY, description = "", required = true, schema = @Schema()) @Valid @RequestParam(value = "sessionId", required = true) String sessionId,
+			@Parameter(in = ParameterIn.PATH, description = "", required = true, schema = @Schema()) @PathVariable("experimentName") String experimentName);
 
-    @Operation(summary = "", description = "Create and start the experiment with the NST.", security = {
-        @SecurityRequirement(name = "snAdapterOAuth", scopes = {
-                    })    }, tags={ "NST Management" })
-    @ApiResponses(value = { 
-        @ApiResponse(responseCode = "202", description = "Instances created by launched experiment.") })
-    @RequestMapping(value = "/experiment",
-        consumes = { "application/json" }, 
-        method = RequestMethod.POST)
-    ResponseEntity<List<ExperimentError>> experimentPost(@NotNull @Parameter(in = ParameterIn.QUERY, description = "" ,required=true,schema=@Schema()) @Valid @RequestParam(value = "sessionId", required = true) String sessionId
-, @Parameter(in = ParameterIn.DEFAULT, description = "", schema=@Schema()) @Valid @RequestBody NetworkServiceTemplate body
-);
+	@Operation(summary = "", description = "Query all experiments created by the user.", security = {
+			@SecurityRequirement(name = "snAdapterOAuth", scopes = {}) }, tags = { "NST Management" })
+	@ApiResponses(value = {
+			@ApiResponse(responseCode = "200", description = "Check status of current experiment.", content = @Content(mediaType = "application/json", array = @ArraySchema(schema = @Schema(implementation = NetworkServiceTemplate.class)))) })
+	@RequestMapping(value = "/experiment", produces = { "application/json" }, method = RequestMethod.GET)
+	ResponseEntity<List<NetworkServiceTemplate>> experimentGet(
+			@NotNull @Parameter(in = ParameterIn.QUERY, description = "", required = true, schema = @Schema()) @Valid @RequestParam(value = "sessionId", required = true) String sessionId);
 
+	@Operation(summary = "", description = "Save the experiment with the NST.", security = {
+			@SecurityRequirement(name = "snAdapterOAuth", scopes = {}) }, tags = { "NST Management" })
+	@ApiResponses(value = { @ApiResponse(responseCode = "202", description = "Experiment saved.") })
+	@RequestMapping(value = "/experiment", consumes = { "application/json" }, method = RequestMethod.POST)
+	ResponseEntity<Void> experimentPost(
+			@NotNull @Parameter(in = ParameterIn.QUERY, description = "", required = true, schema = @Schema()) @Valid @RequestParam(value = "sessionId", required = true) String sessionId,
+			@Parameter(in = ParameterIn.DEFAULT, description = "", schema = @Schema()) @Valid @RequestBody NetworkServiceTemplate body);
 
-    @Operation(summary = "", description = "Terminate the experiment and all instances related to it.", security = {
-        @SecurityRequirement(name = "snAdapterOAuth", scopes = {
-                    })    }, tags={ "NST Management" })
-    @ApiResponses(value = { 
-        @ApiResponse(responseCode = "202", description = "Confirmation of experiment termination.", content = @Content(mediaType = "text/plain", schema = @Schema(implementation = String.class))) })
-    @RequestMapping(value = "/experiment/{trialId}",
-        produces = { "text/plain" }, 
-        method = RequestMethod.DELETE)
-    ResponseEntity<String> experimentTrialIdDelete(@NotNull @Parameter(in = ParameterIn.QUERY, description = "" ,required=true,schema=@Schema()) @Valid @RequestParam(value = "sessionId", required = true) String sessionId
-, @Parameter(in = ParameterIn.PATH, description = "", required=true, schema=@Schema()) @PathVariable("trialId") String trialId
-);
+	@Operation(summary = "", description = "Start experiment virtualization process.", security = {
+			@SecurityRequirement(name = "snAdapterOAuth", scopes = {}) }, tags = { "NST Management" })
+	@ApiResponses(value = {
+			@ApiResponse(responseCode = "202", description = "Instances created by launched experiment."),
 
+			@ApiResponse(responseCode = "4XX", description = "At least one of the instances failed.", content = @Content(mediaType = "application/json", array = @ArraySchema(schema = @Schema(implementation = ExperimentError.class)))),
 
-    @Operation(summary = "", description = "Query Network Service Template virtualization process.", security = {
-        @SecurityRequirement(name = "snAdapterOAuth", scopes = {
-                    })    }, tags={ "NST Management" })
-    @ApiResponses(value = { 
-        @ApiResponse(responseCode = "200", description = "Check status of current experiment.", content = @Content(mediaType = "application/json", schema = @Schema(implementation = NetworkServiceTemplate.class))) })
-    @RequestMapping(value = "/experiment/{trialId}",
-        produces = { "application/json" }, 
-        method = RequestMethod.GET)
-    ResponseEntity<NetworkServiceTemplate> experimentTrialIdGet(@NotNull @Parameter(in = ParameterIn.QUERY, description = "" ,required=true,schema=@Schema()) @Valid @RequestParam(value = "sessionId", required = true) String sessionId
-, @Parameter(in = ParameterIn.PATH, description = "", required=true, schema=@Schema()) @PathVariable("trialId") String trialId
-);
+			@ApiResponse(responseCode = "5XX", description = "At least one of the instances failed.", content = @Content(mediaType = "application/json", array = @ArraySchema(schema = @Schema(implementation = ExperimentError.class)))) })
+	@RequestMapping(value = "/experiment/run/{experimentName}", produces = {
+			"application/json" }, method = RequestMethod.POST)
+	ResponseEntity<List<ExperimentError>> experimentRunExperimentNamePost(
+			@NotNull @Parameter(in = ParameterIn.QUERY, description = "", required = true, schema = @Schema()) @Valid @RequestParam(value = "sessionId", required = true) String sessionId,
+			@Parameter(in = ParameterIn.PATH, description = "", required = true, schema = @Schema()) @PathVariable("experimentName") String experimentName);
+
+	@Operation(summary = "", description = "Finish experiment virtualization process.", security = {
+			@SecurityRequirement(name = "snAdapterOAuth", scopes = {}) }, tags = { "NST Management" })
+	@ApiResponses(value = {
+			@ApiResponse(responseCode = "202", description = "Instances created by launched experiment."),
+
+			@ApiResponse(responseCode = "4XX", description = "At least one of the instances failed.", content = @Content(mediaType = "application/json", array = @ArraySchema(schema = @Schema(implementation = ExperimentError.class)))),
+
+			@ApiResponse(responseCode = "5XX", description = "At least one of the instances failed.", content = @Content(mediaType = "application/json", array = @ArraySchema(schema = @Schema(implementation = ExperimentError.class)))) })
+	@RequestMapping(value = "/experiment/terminate/{experimentName}", produces = {
+			"application/json" }, method = RequestMethod.DELETE)
+	ResponseEntity<List<ExperimentError>> experimentTerminateExperimentNameDelete(
+			@NotNull @Parameter(in = ParameterIn.QUERY, description = "", required = true, schema = @Schema()) @Valid @RequestParam(value = "sessionId", required = true) String sessionId,
+			@Parameter(in = ParameterIn.PATH, description = "", required = true, schema = @Schema()) @PathVariable("experimentName") String experimentName);
 
 }
-

@@ -10,6 +10,6 @@ public interface SouthNodeNSTRepository extends MongoRepository<SouthNodeExperim
 
 	List<SouthNodeExperiment> findByUser(String user);
 	
-	SouthNodeExperiment findByUserAndTrialId(String user, Integer trialId);
-	void deleteByUserAndTrialId(String user, Integer trialId);
+	SouthNodeExperiment findByUserAndExperimentName(String user, String experimentName);
+	void deleteByUserAndExperimentName(String user, String experimentName);
 }

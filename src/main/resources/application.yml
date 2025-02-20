@@ -11,18 +11,11 @@ spring:
   data:
     mongodb:
       #LOCAL
-      uri: mongodb://localhost:27017/6GXR
+      #uri: mongodb://localhost:27017/6GXR
       #DOCKER
       #uri: mongodb://mongodb-6g-xr:27017/6GXR
       #HELM
-      #uri: mongodb://10.15.126.160:30018/6GXR
-
-feign:
-  client:
-    config:
-      default:
-        retryer:
-          maxAttempts: 1
+      uri: mongodb://10.15.126.160:30018/6GXR
 
 gpsis[0]: msisdn-49165001039
 gpsis[1]: msisdn-49165001028
@@ -44,3 +37,5 @@ tcSlices:
   barcelonaHigh:
     ieapZone: barcelonazone
     nefSlice: barcelona-high
+
+experimentLockId: LOCK
