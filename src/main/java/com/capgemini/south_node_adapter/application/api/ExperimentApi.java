@@ -96,4 +96,10 @@ public interface ExperimentApi {
 			@NotNull @Parameter(in = ParameterIn.QUERY, description = "", required = true, schema = @Schema()) @Valid @RequestParam(value = "sessionId", required = true) String sessionId,
 			@Parameter(in = ParameterIn.PATH, description = "", required = true, schema = @Schema()) @PathVariable("experimentName") String experimentName);
 
+	@Operation(summary = "", description = "Terminate and delete all experiments that match the trialId.", security = {
+			@SecurityRequirement(name = "snAdapterOAuth", scopes = {}) }, tags = { "NST Management" })
+	@ApiResponses(value = { @ApiResponse(responseCode = "202", description = "Experiment data deleted.") })
+	@RequestMapping(value = "/experiment/endTrial/{trialId}", method = RequestMethod.DELETE)
+	ResponseEntity<Void> experimentEndTrialTrialIdDelete(
+			@Parameter(in = ParameterIn.PATH, description = "", required = true, schema = @Schema()) @PathVariable("trialId") Integer trialId);
 }

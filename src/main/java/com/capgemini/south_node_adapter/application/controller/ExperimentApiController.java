@@ -59,4 +59,9 @@ public class ExperimentApiController implements ExperimentApi {
 			@NotNull @Valid String sessionId, String experimentName) {
 		return this.experimentService.experimentTerminateExperimentNameDelete(sessionId, experimentName);
 	}
+
+	@Override
+	public ResponseEntity<Void> experimentEndTrialTrialIdDelete(Integer trialId) {
+		return this.experimentService.experimentEndTrialTrialIdDelete(trialId);
+	}
 }

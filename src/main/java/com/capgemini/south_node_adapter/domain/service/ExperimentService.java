@@ -15,4 +15,5 @@ public interface ExperimentService {
 	public ResponseEntity<Void> experimentPost(String sessionId, NetworkServiceTemplate body);
 	public ResponseEntity<List<ExperimentError>> experimentRunExperimentNamePost(String sessionId, String experimentName);
 	public ResponseEntity<List<ExperimentError>> experimentTerminateExperimentNameDelete(String sessionId, String experimentName);
+	public ResponseEntity<Void> experimentEndTrialTrialIdDelete(Integer trialId);
 }
