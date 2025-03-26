@@ -7,7 +7,7 @@ metadata:
 spec:
   type: LoadBalancer
 #  externalIPs:
-#    - 10.6.71.75  # Especifica la IP estática aquí
+#    - 10.6.71.75  # Specify the static IP here
   ports:
     - port: 27018        # Puerto expuesto fuera del clúster
       targetPort: 27017  # Este debe coincidir con el containerPort del Deployment
