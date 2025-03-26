@@ -9,12 +9,12 @@ spec:
 #  externalIPs:
 #    - 10.6.71.75  # Specify the static IP here
   ports:
-    - port: 27018        # Puerto expuesto fuera del clúster
-      targetPort: 27017  # Este debe coincidir con el containerPort del Deployment
+    - port: 27018        # Port exposed out of the cluster
+      targetPort: 27017  # Must match with containerPort in Deployment
       name: mongodb-6g-xr
-      nodePort: 30018    # Asigna el nodePort explícitamente
+      nodePort: 30018    # Assign nodePort explicitly
   selector:
-    app: 6g-xr  # Asegúrate de que este selector coincida con el label en tu Deployment
+    app: 6g-xr  # Make sure this selector matches label in Deployment
 ---
 apiVersion: v1
 kind: Service
@@ -25,11 +25,11 @@ metadata:
 spec:
   type: LoadBalancer
 #  externalIPs:
-#    - 10.6.71.75  # Especifica la IP estática aquí
+#    - 10.6.71.75  # Specify the static IP here
   ports:
-    - port: 8081        # Puerto expuesto fuera del clúster
-      targetPort: 8080  # Puerto del contenedor
+    - port: 8081        # Exposed port outside the cluster
+      targetPort: 8080  # Container port
       name: exist-port
-      nodePort: 30081    # Asigna el nodePort explícitamente
+      nodePort: 30081    # Assigns the nodePort explicitly
   selector:
-    app: 6g-xr  # Asegúrate de que este selector coincida con el label en tu Deployment
+    app: 6g-xr  # Make sure it matches with label in Deployment

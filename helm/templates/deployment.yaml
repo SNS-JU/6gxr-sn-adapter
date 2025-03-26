@@ -26,7 +26,7 @@ spec:
         - name: mongodb-6g-xr
           image: {{ .Values.mongodb.image.repository }}:{{ .Values.mongodb.image.tag }}
           ports:
-            - containerPort: 27017  # Asegúrate de que este puerto coincida con el Service
+            - containerPort: 27017  # Make sure port matches with the one in Service
           volumeMounts:
             - name: mongodb-6g-xr-data
               mountPath: /data/db
