@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-6g-xr
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: 6g-xr
+  template:
+    metadata:
+      labels:
+        app: 6g-xr
+    spec:
+      containers:
+        - name: sn-adapter
+          image: sn-adapter:3.1.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+          env:
+            - name: KUBERNETES_TRUST_CERTIFICATES
+              value: "true"
+            - name: JAVA_OPTS
+              value: "-Djavax.net.ssl.trustAll=true -Djavax.net.ssl.trustStoreType=JKS -Dfeign.client.httpclient.disableSslValidation=true"
+        - name: mongodb-6g-xr
+          image: {{ .Values.mongodb.image.repository }}:{{ .Values.mongodb.image.tag }}
+          ports:
+            - containerPort: 27017  # Asegúrate de que este puerto coincida con el Service
+          volumeMounts:
+            - name: mongodb-6g-xr-data
+              mountPath: /data/db
+
+      volumes:
+        - name: mongodb-6g-xr-data
+          hostPath:
+            path: /mnt/6gxr/data/db
