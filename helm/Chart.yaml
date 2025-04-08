@@ -1,0 +1,5 @@
+apiVersion: v2
+name: helm-6g-xr-chart
+description: A Helm chart for deploying 6G-XR Server, MongoDB.
+version: 0.1.0
+appVersion: "1.0"
