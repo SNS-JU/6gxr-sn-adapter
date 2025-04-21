@@ -299,6 +299,7 @@ public class ExperimentServiceImpl implements ExperimentService {
 		experiment.setIeapInstances(List.of());
 	}
 
+	//Only one experiment can be running at the same time 
 	public void acquireLock() throws Exception {
 
 		Optional<ExperimentLock> experimentLock = this.lockRepository.findById(this.xrproperties.getExperimentLockId());
