@@ -10,7 +10,22 @@ Can be used in any IDE that supports Java and Git.
 
 ## Test and Deploy
 
-To deploy a new version, follow these steps:
+MongoDB current Docker deployment: 
+docker run -d --name mongodb-6gxr --network sn-adapter-6g-xr -p 30018:27017 -v /mnt/6gxr/data/db:/data/db mongo:latest
+
+To deploy a new version via Docker, follow these steps:
+- Update bootJar task in build.gradle with the new version.
+- Run bootJar task.
+- Update Dockerfile COPY command jar's version to the new one that has been compiled to bootJar.
+- Inside Docker Desktop, go to the root folder of the project and perform "docker build --tag=sn-adapter:<version> ."
+- Once built succesfully, do "docker save -o <your-path>\sn-adapter-<version>.tar snw-webportal:<version>"
+- Upload docker image to remote machine via SSH (currently using "ssh root@10.15.126.160" on /6g-xr main folder with password abc123)
+- docker load < <new-version>.tar
+- docker ps
+- docker stop <previous-running-version-container-id>
+- docker run -d --name sn-adapter --network sn-adapter-6g-xr -p 30081:8080 sn-adapter:<new-version>
+
+To deploy a new version via Helm Chart, follow these steps:
 
 - Update bootJar task in build.gradle with the new version.
 - Run bootJar task.
