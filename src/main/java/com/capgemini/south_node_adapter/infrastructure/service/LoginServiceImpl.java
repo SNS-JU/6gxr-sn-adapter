@@ -47,7 +47,8 @@ public class LoginServiceImpl implements LoginService {
 			Token newIeapToken = ieapClientNBI.createAccessToken(SessionUtil.IEAP_CREDENTIALS);
 			newIeapToken.setAccessToken(SessionUtil.BEARER_PREFIX + newIeapToken.getAccessToken());
 
-			Session session = new Session(user, credential.get().getAppProviderId(), newIeapToken, LocalDateTime.now());
+			Session session = new Session(user, credential.get().getAppProviderId(), newIeapToken, LocalDateTime.now(),
+					LocalDateTime.now());
 			Session savedSession = this.sessionRepository.save(session);
 
 			LoginDetails loginDetails = new LoginDetails();

@@ -46,8 +46,12 @@ class ExperimentServiceImplTest {
 		@Test
 		void whenSessionExists() {
 
+			XRProperties xrProperties = new XRProperties();
+			xrProperties.setSessionValidTimeInSeconds(300l);
+
 			SessionRepository sessionRepository = Mockito.mock(SessionRepository.class);
-			Session session = new Session("user", "appProviderId", new Token("accessToken", "tokenType", 1, "scope"), LocalDateTime.now());
+			Session session = new Session("user", "appProviderId", new Token("accessToken", "tokenType", 1, "scope"),
+					LocalDateTime.now(), LocalDateTime.now());
 			Mockito.doReturn(Optional.of(session)).when(sessionRepository).findById(Mockito.anyString());
 
 			SouthNodeNSTRepository southNodeNSTRepository = Mockito.mock(SouthNodeNSTRepository.class);
@@ -55,7 +59,7 @@ class ExperimentServiceImplTest {
 					.findByUser(Mockito.anyString());
 
 			ExperimentService experimentService = ExperimentServiceImpl.builder().sessionRepository(sessionRepository)
-					.southNodeNSTRepository(southNodeNSTRepository).build();
+					.xrproperties(xrProperties).southNodeNSTRepository(southNodeNSTRepository).build();
 
 			ResponseEntity<List<NetworkServiceTemplate>> response = experimentService.experimentGet(StringUtils.EMPTY);
 			assertEquals(HttpStatus.OK, response.getStatusCode());
@@ -63,6 +67,9 @@ class ExperimentServiceImplTest {
 
 		@Test
 		void whenInexistantSession() {
+
+			XRProperties xrProperties = new XRProperties();
+			xrProperties.setSessionValidTimeInSeconds(300l);
 
 			SessionRepository sessionRepository = Mockito.mock(SessionRepository.class);
 			Mockito.doReturn(Optional.empty()).when(sessionRepository).findById(Mockito.anyString());
@@ -72,7 +79,29 @@ class ExperimentServiceImplTest {
 					.findByUser(Mockito.anyString());
 
 			ExperimentService experimentService = ExperimentServiceImpl.builder().sessionRepository(sessionRepository)
-					.southNodeNSTRepository(southNodeNSTRepository).build();
+					.xrproperties(xrProperties).southNodeNSTRepository(southNodeNSTRepository).build();
+
+			ResponseEntity<List<NetworkServiceTemplate>> response = experimentService.experimentGet(StringUtils.EMPTY);
+			assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
+		}
+
+		@Test
+		void whenSessionExpired() {
+
+			XRProperties xrProperties = new XRProperties();
+			xrProperties.setSessionValidTimeInSeconds(300l);
+
+			SessionRepository sessionRepository = Mockito.mock(SessionRepository.class);
+			Session session = new Session("user", "appProviderId", new Token("accessToken", "tokenType", 1, "scope"),
+					LocalDateTime.now().plusSeconds(1), LocalDateTime.now().minusSeconds(300l));
+			Mockito.doReturn(Optional.of(session)).when(sessionRepository).findById(Mockito.anyString());
+
+			SouthNodeNSTRepository southNodeNSTRepository = Mockito.mock(SouthNodeNSTRepository.class);
+			Mockito.doReturn(List.of(new SouthNodeExperiment())).when(southNodeNSTRepository)
+					.findByUser(Mockito.anyString());
+
+			ExperimentService experimentService = ExperimentServiceImpl.builder().sessionRepository(sessionRepository)
+					.xrproperties(xrProperties).southNodeNSTRepository(southNodeNSTRepository).build();
 
 			ResponseEntity<List<NetworkServiceTemplate>> response = experimentService.experimentGet(StringUtils.EMPTY);
 			assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
@@ -86,11 +115,13 @@ class ExperimentServiceImplTest {
 		void whenSessionExists() {
 
 			SessionRepository sessionRepository = Mockito.mock(SessionRepository.class);
-			Session session = new Session("user", "appProviderId", new Token("accessToken", "tokenType", 1, "scope"), LocalDateTime.now());
+			Session session = new Session("user", "appProviderId", new Token("accessToken", "tokenType", 1, "scope"),
+					LocalDateTime.now(), LocalDateTime.now());
 			Mockito.doReturn(Optional.of(session)).when(sessionRepository).findById(Mockito.anyString());
 
 			IEAPClientNBI ieapClientNBI = Mockito.mock(IEAPClientNBI.class);
-			Mockito.doReturn(new Token("accessToken", "tokenType", 1, "scope")).when(ieapClientNBI).createAccessToken(Mockito.any(Oauth2TokenBody.class));
+			Mockito.doReturn(new Token("accessToken", "tokenType", 1, "scope")).when(ieapClientNBI)
+					.createAccessToken(Mockito.any(Oauth2TokenBody.class));
 			EnterpriseDetails user = new EnterpriseDetails();
 			Mockito.doReturn(user).when(ieapClientNBI).getUser(Mockito.anyString(), Mockito.anyString());
 			ZoneDetails zoneDetails = new ZoneDetails();
@@ -111,6 +142,7 @@ class ExperimentServiceImplTest {
 			sampleTcSlice.setIeapZone("zoneId");
 			tcSliceMap.put("tcSlice", sampleTcSlice);
 			properties.setTcSlices(tcSliceMap);
+			properties.setSessionValidTimeInSeconds(300l);
 
 			SouthNodeAdapterNetworkServiceTemplateApplications sample = new SouthNodeAdapterNetworkServiceTemplateApplications();
 			sample.setTcSlice("tcSlice");
@@ -127,13 +159,15 @@ class ExperimentServiceImplTest {
 					.sessionRepository(sessionRepository).southNodeNSTRepository(southNodeNSTRepository)
 					.nefClient(nefClient).xrproperties(properties).build();
 
-			ResponseEntity<Void> response = experimentService.experimentPost(StringUtils.EMPTY,
-					networkServiceTemplate);
+			ResponseEntity<Void> response = experimentService.experimentPost(StringUtils.EMPTY, networkServiceTemplate);
 			assertEquals(HttpStatus.ACCEPTED, response.getStatusCode());
 		}
 
 		@Test
 		void whenInexistantSession() {
+
+			XRProperties xrProperties = new XRProperties();
+			xrProperties.setSessionValidTimeInSeconds(300l);
 
 			SessionRepository sessionRepository = Mockito.mock(SessionRepository.class);
 			Mockito.doReturn(Optional.empty()).when(sessionRepository).findById(Mockito.anyString());
@@ -147,18 +181,37 @@ class ExperimentServiceImplTest {
 			Mockito.doReturn(null).when(southNodeNSTRepository).save(Mockito.any(SouthNodeExperiment.class));
 
 			ExperimentService experimentService = ExperimentServiceImpl.builder().ieapClientNBI(ieapClientNBI)
-					.sessionRepository(sessionRepository).southNodeNSTRepository(southNodeNSTRepository).build();
+					.xrproperties(xrProperties).sessionRepository(sessionRepository)
+					.southNodeNSTRepository(southNodeNSTRepository).build();
 
-			SouthNodeAdapterNetworkServiceTemplateApplications sample = new SouthNodeAdapterNetworkServiceTemplateApplications();
+			ResponseEntity<Void> response = experimentService.experimentPost(StringUtils.EMPTY, null);
+			assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
+		}
 
-			SouthNodeAdapterNetworkServiceTemplate southNodeAdapterNetworkServiceTemplate = new SouthNodeAdapterNetworkServiceTemplate();
-			southNodeAdapterNetworkServiceTemplate.setApplications(List.of(sample, sample, sample));
+		@Test
+		void whenSessionExpired() {
 
-			NetworkServiceTemplate networkServiceTemplate = new NetworkServiceTemplate();
-			networkServiceTemplate.setSouthNodeAdapterNetworkServiceTemplate(southNodeAdapterNetworkServiceTemplate);
+			XRProperties xrProperties = new XRProperties();
+			xrProperties.setSessionValidTimeInSeconds(300l);
 
-			ResponseEntity<Void> response = experimentService.experimentPost(StringUtils.EMPTY,
-					networkServiceTemplate);
+			Session session = new Session("user", "appProviderId", new Token("accessToken", "tokenType", 1, "scope"),
+					LocalDateTime.now().plusSeconds(1), LocalDateTime.now().minusSeconds(300l));
+			SessionRepository sessionRepository = Mockito.mock(SessionRepository.class);
+			Mockito.doReturn(Optional.of(session)).when(sessionRepository).findById(Mockito.anyString());
+
+			IEAPClientNBI ieapClientNBI = Mockito.mock(IEAPClientNBI.class);
+			Mockito.doReturn(List.of(StringUtils.EMPTY, StringUtils.SPACE)).when(ieapClientNBI).launchApplication(
+					Mockito.anyString(), Mockito.anyString(), Mockito.anyString(), Mockito.anyBoolean(),
+					Mockito.anyString(), Mockito.anyString());
+
+			SouthNodeNSTRepository southNodeNSTRepository = Mockito.mock(SouthNodeNSTRepository.class);
+			Mockito.doReturn(null).when(southNodeNSTRepository).save(Mockito.any(SouthNodeExperiment.class));
+
+			ExperimentService experimentService = ExperimentServiceImpl.builder().ieapClientNBI(ieapClientNBI)
+					.xrproperties(xrProperties).sessionRepository(sessionRepository)
+					.southNodeNSTRepository(southNodeNSTRepository).build();
+
+			ResponseEntity<Void> response = experimentService.experimentPost(StringUtils.EMPTY, null);
 			assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
 		}
 	}
@@ -169,37 +222,44 @@ class ExperimentServiceImplTest {
 		@Test
 		void whenSessionExists() {
 
+			XRProperties xrProperties = new XRProperties();
+			xrProperties.setSessionValidTimeInSeconds(300l);
+
 			SessionRepository sessionRepository = Mockito.mock(SessionRepository.class);
-			Session session = new Session("user", "appProviderId", new Token("accessToken", "tokenType", 1, "scope"), LocalDateTime.now());
+			Session session = new Session("user", "appProviderId", new Token("accessToken", "tokenType", 1, "scope"),
+					LocalDateTime.now(), LocalDateTime.now());
 			Mockito.doReturn(Optional.of(session)).when(sessionRepository).findById(Mockito.anyString());
 
 			SouthNodeNSTRepository southNodeNSTRepository = Mockito.mock(SouthNodeNSTRepository.class);
-			Mockito.doReturn(new SouthNodeExperiment()).when(southNodeNSTRepository).findByUserAndExperimentName(Mockito.anyString(),
-					Mockito.anyString());
+			Mockito.doReturn(new SouthNodeExperiment()).when(southNodeNSTRepository)
+					.findByUserAndExperimentName(Mockito.anyString(), Mockito.anyString());
 
 			ExperimentService experimentService = ExperimentServiceImpl.builder().sessionRepository(sessionRepository)
-					.southNodeNSTRepository(southNodeNSTRepository).build();
+					.xrproperties(xrProperties).southNodeNSTRepository(southNodeNSTRepository).build();
 
-			ResponseEntity<NetworkServiceTemplate> response = experimentService.experimentExperimentNameGet(StringUtils.EMPTY,
-					StringUtils.EMPTY);
+			ResponseEntity<NetworkServiceTemplate> response = experimentService
+					.experimentExperimentNameGet(StringUtils.EMPTY, StringUtils.EMPTY);
 			assertEquals(HttpStatus.OK, response.getStatusCode());
 		}
 
 		@Test
 		void whenInexistantSession() {
 
+			XRProperties xrProperties = new XRProperties();
+			xrProperties.setSessionValidTimeInSeconds(300l);
+
 			SessionRepository sessionRepository = Mockito.mock(SessionRepository.class);
 			Mockito.doReturn(Optional.empty()).when(sessionRepository).findById(Mockito.anyString());
 
 			SouthNodeNSTRepository southNodeNSTRepository = Mockito.mock(SouthNodeNSTRepository.class);
-			Mockito.doReturn(new SouthNodeExperiment()).when(southNodeNSTRepository).findByUserAndExperimentName(Mockito.anyString(),
-					Mockito.anyString());
+			Mockito.doReturn(new SouthNodeExperiment()).when(southNodeNSTRepository)
+					.findByUserAndExperimentName(Mockito.anyString(), Mockito.anyString());
 
 			ExperimentService experimentService = ExperimentServiceImpl.builder().sessionRepository(sessionRepository)
-					.southNodeNSTRepository(southNodeNSTRepository).build();
+					.xrproperties(xrProperties).southNodeNSTRepository(southNodeNSTRepository).build();
 
-			ResponseEntity<NetworkServiceTemplate> response = experimentService.experimentExperimentNameGet(StringUtils.EMPTY,
-					StringUtils.EMPTY);
+			ResponseEntity<NetworkServiceTemplate> response = experimentService
+					.experimentExperimentNameGet(StringUtils.EMPTY, StringUtils.EMPTY);
 			assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
 		}
 	}
@@ -210,8 +270,12 @@ class ExperimentServiceImplTest {
 		@Test
 		void whenSessionExists() {
 
+			XRProperties xrProperties = new XRProperties();
+			xrProperties.setSessionValidTimeInSeconds(300l);
+
 			SessionRepository sessionRepository = Mockito.mock(SessionRepository.class);
-			Session session = new Session("user", "appProviderId", new Token("accessToken", "tokenType", 1, "scope"), LocalDateTime.now());
+			Session session = new Session("user", "appProviderId", new Token("accessToken", "tokenType", 1, "scope"),
+					LocalDateTime.now(), LocalDateTime.now());
 			Mockito.doReturn(Optional.of(session)).when(sessionRepository).findById(Mockito.anyString());
 
 			SouthNodeNSTRepository southNodeNSTRepository = Mockito.mock(SouthNodeNSTRepository.class);
@@ -226,7 +290,8 @@ class ExperimentServiceImplTest {
 			Mockito.doReturn(new Token()).when(ieapClientNBI).createAccessToken(Mockito.any(Oauth2TokenBody.class));
 
 			ExperimentService experimentService = ExperimentServiceImpl.builder().ieapClientNBI(ieapClientNBI)
-					.sessionRepository(sessionRepository).southNodeNSTRepository(southNodeNSTRepository).build();
+					.xrproperties(xrProperties).sessionRepository(sessionRepository)
+					.southNodeNSTRepository(southNodeNSTRepository).build();
 
 			ResponseEntity<Void> response = experimentService.experimentExperimentNameDelete(StringUtils.EMPTY,
 					StringUtils.EMPTY);
@@ -235,6 +300,9 @@ class ExperimentServiceImplTest {
 
 		@Test
 		void whenInexistantSession() {
+
+			XRProperties xrProperties = new XRProperties();
+			xrProperties.setSessionValidTimeInSeconds(300l);
 
 			SessionRepository sessionRepository = Mockito.mock(SessionRepository.class);
 			Mockito.doReturn(Optional.empty()).when(sessionRepository).findById(Mockito.anyString());
@@ -250,27 +318,28 @@ class ExperimentServiceImplTest {
 			IEAPClientNBI ieapClientNBI = Mockito.mock(IEAPClientNBI.class);
 
 			ExperimentService experimentService = ExperimentServiceImpl.builder().ieapClientNBI(ieapClientNBI)
-					.sessionRepository(sessionRepository).southNodeNSTRepository(southNodeNSTRepository).build();
+					.xrproperties(xrProperties).sessionRepository(sessionRepository)
+					.southNodeNSTRepository(southNodeNSTRepository).build();
 
 			ResponseEntity<Void> response = experimentService.experimentExperimentNameDelete(StringUtils.EMPTY,
 					StringUtils.EMPTY);
 			assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
 		}
 	}
-	
+
 	@Nested
 	class ExperimentServiceImplTestEndTrialIdDelete {
 
 		@Test
 		void withoutSession() {
 
-			
 			SessionRepository sessionRepository = Mockito.mock(SessionRepository.class);
-			Session session = new Session("user", "appProviderId", new Token("accessToken", "tokenType", 1, "scope"), LocalDateTime.now());
+			Session session = new Session("user", "appProviderId", new Token("accessToken", "tokenType", 1, "scope"),
+					LocalDateTime.now(), LocalDateTime.now());
 			Mockito.doReturn(Optional.of(session)).when(sessionRepository).findById(Mockito.anyString());
 
 			SouthNodeNSTRepository southNodeNSTRepository = Mockito.mock(SouthNodeNSTRepository.class);
-			
+
 			SouthNodeExperimentIEAPInstance instance = new SouthNodeExperimentIEAPInstance(StringUtils.EMPTY,
 					StringUtils.EMPTY, StringUtils.EMPTY, StringUtils.EMPTY, StringUtils.EMPTY);
 
@@ -281,7 +350,7 @@ class ExperimentServiceImplTest {
 			SouthNodeExperiment toBeDeleted = new SouthNodeExperiment();
 			toBeDeleted.setNetworkServiceTemplate(networkServiceTemplate);
 			toBeDeleted.setIeapInstances(List.of(instance));
-			
+
 			Mockito.doReturn(toBeDeleted).when(southNodeNSTRepository).findByUserAndExperimentName(Mockito.anyString(),
 					Mockito.anyString());
 
@@ -295,15 +364,19 @@ class ExperimentServiceImplTest {
 			assertEquals(HttpStatus.ACCEPTED, response.getStatusCode());
 		}
 	}
-	
+
 	@Nested
 	class ExperimentServiceImplTestRunExperimentNamePost {
-		
+
 		@Test
 		void whenSessionExistsExperimentAlreadyInCourse() {
 
+			XRProperties xrProperties = new XRProperties();
+			xrProperties.setSessionValidTimeInSeconds(300l);
+
 			SessionRepository sessionRepository = Mockito.mock(SessionRepository.class);
-			Session session = new Session("user", "appProviderId", new Token("accessToken", "tokenType", 1, "scope"), LocalDateTime.now());
+			Session session = new Session("user", "appProviderId", new Token("accessToken", "tokenType", 1, "scope"),
+					LocalDateTime.now(), LocalDateTime.now());
 			Mockito.doReturn(Optional.of(session)).when(sessionRepository).findById(Mockito.anyString());
 
 			SouthNodeNSTRepository southNodeNSTRepository = Mockito.mock(SouthNodeNSTRepository.class);
@@ -313,7 +386,7 @@ class ExperimentServiceImplTest {
 			toBeDeleted.setIeapInstances(List.of(instance));
 			Mockito.doReturn(toBeDeleted).when(southNodeNSTRepository).findByUserAndExperimentName(Mockito.anyString(),
 					Mockito.anyString());
-			
+
 			LockRepository lockRepository = Mockito.mock(LockRepository.class);
 			ExperimentLock experimentLock = new ExperimentLock();
 			experimentLock.setLock(true);
@@ -323,18 +396,23 @@ class ExperimentServiceImplTest {
 			Mockito.doReturn(new Token()).when(ieapClientNBI).createAccessToken(Mockito.any(Oauth2TokenBody.class));
 
 			ExperimentService experimentService = ExperimentServiceImpl.builder().ieapClientNBI(ieapClientNBI)
-					.lockRepository(null)
-					.sessionRepository(sessionRepository).southNodeNSTRepository(southNodeNSTRepository).build();
+					.lockRepository(null).sessionRepository(sessionRepository).xrproperties(xrProperties)
+					.southNodeNSTRepository(southNodeNSTRepository).build();
 
-			ResponseEntity<List<ExperimentError>> response = experimentService.experimentRunExperimentNamePost(StringUtils.EMPTY, StringUtils.EMPTY);
+			ResponseEntity<List<ExperimentError>> response = experimentService
+					.experimentRunExperimentNamePost(StringUtils.EMPTY, StringUtils.EMPTY);
 			assertEquals(HttpStatus.LOCKED, response.getStatusCode());
 		}
-		
+
 		@Test
 		void whenSessionExistsExperimentNotInCourse() {
 
+			XRProperties xrProperties = new XRProperties();
+			xrProperties.setSessionValidTimeInSeconds(300l);
+
 			SessionRepository sessionRepository = Mockito.mock(SessionRepository.class);
-			Session session = new Session("user", "appProviderId", new Token("accessToken", "tokenType", 1, "scope"), LocalDateTime.now());
+			Session session = new Session("user", "appProviderId", new Token("accessToken", "tokenType", 1, "scope"),
+					LocalDateTime.now(), LocalDateTime.now());
 			Mockito.doReturn(Optional.of(session)).when(sessionRepository).findById(Mockito.anyString());
 
 			SouthNodeNSTRepository southNodeNSTRepository = Mockito.mock(SouthNodeNSTRepository.class);
@@ -344,7 +422,7 @@ class ExperimentServiceImplTest {
 			toBeDeleted.setIeapInstances(List.of(instance));
 			Mockito.doReturn(toBeDeleted).when(southNodeNSTRepository).findByUserAndExperimentName(Mockito.anyString(),
 					Mockito.anyString());
-			
+
 			LockRepository lockRepository = Mockito.mock(LockRepository.class);
 			ExperimentLock experimentLock = new ExperimentLock();
 			experimentLock.setLock(false);
@@ -354,15 +432,19 @@ class ExperimentServiceImplTest {
 			Mockito.doReturn(new Token()).when(ieapClientNBI).createAccessToken(Mockito.any(Oauth2TokenBody.class));
 
 			ExperimentService experimentService = ExperimentServiceImpl.builder().ieapClientNBI(ieapClientNBI)
-					.lockRepository(null)
-					.sessionRepository(sessionRepository).southNodeNSTRepository(southNodeNSTRepository).build();
+					.lockRepository(null).sessionRepository(sessionRepository).xrproperties(xrProperties)
+					.southNodeNSTRepository(southNodeNSTRepository).build();
 
-			ResponseEntity<List<ExperimentError>> response = experimentService.experimentRunExperimentNamePost(StringUtils.EMPTY, StringUtils.EMPTY);
+			ResponseEntity<List<ExperimentError>> response = experimentService
+					.experimentRunExperimentNamePost(StringUtils.EMPTY, StringUtils.EMPTY);
 			assertEquals(HttpStatus.LOCKED, response.getStatusCode());
 		}
 
 		@Test
 		void whenInexistantSession() {
+
+			XRProperties xrProperties = new XRProperties();
+			xrProperties.setSessionValidTimeInSeconds(300l);
 
 			SessionRepository sessionRepository = Mockito.mock(SessionRepository.class);
 			Mockito.doReturn(Optional.empty()).when(sessionRepository).findById(Mockito.anyString());
@@ -378,9 +460,11 @@ class ExperimentServiceImplTest {
 			IEAPClientNBI ieapClientNBI = Mockito.mock(IEAPClientNBI.class);
 
 			ExperimentService experimentService = ExperimentServiceImpl.builder().ieapClientNBI(ieapClientNBI)
-					.sessionRepository(sessionRepository).southNodeNSTRepository(southNodeNSTRepository).build();
+					.xrproperties(xrProperties).sessionRepository(sessionRepository)
+					.southNodeNSTRepository(southNodeNSTRepository).build();
 
-			ResponseEntity<List<ExperimentError>> response = experimentService.experimentRunExperimentNamePost(StringUtils.EMPTY, StringUtils.EMPTY);
+			ResponseEntity<List<ExperimentError>> response = experimentService
+					.experimentRunExperimentNamePost(StringUtils.EMPTY, StringUtils.EMPTY);
 			assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
 		}
 	}
