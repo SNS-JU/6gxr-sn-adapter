@@ -16,4 +16,5 @@ public class XRProperties {
 	private List<String> gpsis;
 	private Map<String, TCSlice> tcSlices;
 	private String experimentLockId;
+	private Long sessionValidTimeInSeconds;
 }

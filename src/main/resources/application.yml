@@ -36,3 +36,4 @@ tcSlices:
     nefSlice: barcelona-high
 
 experimentLockId: LOCK
+sessionValidTimeInSeconds: 420

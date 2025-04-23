@@ -37,12 +37,12 @@ class ApplicationsServiceImplTest {
 
 	@Nested
 	class ApplicationsServiceImplTestGet {
-		
+
 		@Test
 		void whenSessionExists() {
 
 			Token token = new Token("accessToken", "tokenType", 1, "scope");
-			Session session = new Session("user", "appProviderId", token, LocalDateTime.now());
+			Session session = new Session("user", "appProviderId", token, LocalDateTime.now(), LocalDateTime.now());
 			SessionRepository sessionRepository = Mockito.mock(SessionRepository.class);
 			Mockito.doReturn(Optional.of(session)).when(sessionRepository).findById(Mockito.anyString());
 
@@ -51,30 +51,33 @@ class ApplicationsServiceImplTest {
 			IEAPApplication sample = new IEAPApplication();
 			sample.setAppDeploymentZones(List.of(deploymentZoneDetails));
 			List<IEAPApplication> applications = List.of(sample, sample, sample);
-			
+
 			IEAPClientNBI ieapClientNBI = Mockito.mock(IEAPClientNBI.class);
 			Mockito.doReturn(token).when(ieapClientNBI).createAccessToken(Mockito.any(Oauth2TokenBody.class));
-			Mockito.doReturn(applications).when(ieapClientNBI).getApplications(Mockito.anyString(), Mockito.anyString());
+			Mockito.doReturn(applications).when(ieapClientNBI).getApplications(Mockito.anyString(),
+					Mockito.anyString());
 			EnterpriseDetails user = new EnterpriseDetails();
 			user.setDomainName(StringUtils.EMPTY);
 			Mockito.doReturn(user).when(ieapClientNBI).getUser(Mockito.anyString(), Mockito.anyString());
-			
+
 			Flavour flavour = new Flavour();
 			flavour.setFlavourId("flavour");
 			ZoneDetails ieapZoneDetails = new ZoneDetails();
 			ieapZoneDetails.setZoneId("zoneId");
 			ieapZoneDetails.setSupportedFlavours(List.of(flavour));
-			Mockito.doReturn(List.of(ieapZoneDetails)).when(ieapClientNBI).getZones(Mockito.anyString(), Mockito.anyString());
-			
+			Mockito.doReturn(List.of(ieapZoneDetails)).when(ieapClientNBI).getZones(Mockito.anyString(),
+					Mockito.anyString());
+
 			XRProperties properties = new XRProperties();
 			Map<String, TCSlice> tcSliceMap = new HashMap<String, TCSlice>();
 			TCSlice sampleTcSlice = new TCSlice();
 			sampleTcSlice.setIeapZone("zoneId");
 			tcSliceMap.put("tcSlice", sampleTcSlice);
 			properties.setTcSlices(tcSliceMap);
+			properties.setSessionValidTimeInSeconds(300l);
 
-			ApplicationsService applicationsService = ApplicationsServiceImpl.builder().ieapClientNBI(ieapClientNBI).xrProperties(properties)
-					.sessionRepository(sessionRepository).build();
+			ApplicationsService applicationsService = ApplicationsServiceImpl.builder().ieapClientNBI(ieapClientNBI)
+					.xrProperties(properties).sessionRepository(sessionRepository).build();
 
 			ResponseEntity<List<InlineResponse200>> response = applicationsService
 					.viewAllApplication(StringUtils.EMPTY);
@@ -84,18 +87,51 @@ class ApplicationsServiceImplTest {
 
 		@Test
 		void whenInexistantSession() {
+
+			XRProperties xrProperties = new XRProperties();
+			xrProperties.setSessionValidTimeInSeconds(300l);
+
 			SessionRepository sessionRepository = Mockito.mock(SessionRepository.class);
 			Mockito.doReturn(Optional.empty()).when(sessionRepository).findById(Mockito.anyString());
 
 			IEAPApplication sample = new IEAPApplication();
 			sample.setAppDeploymentZones(List.of(new ZoneDetails()));
 			List<IEAPApplication> applications = List.of(sample, sample, sample);
-			
+
 			IEAPClientNBI ieapClientNBI = Mockito.mock(IEAPClientNBI.class);
-			Mockito.doReturn(applications).when(ieapClientNBI).getApplications(Mockito.anyString(), Mockito.anyString());
+			Mockito.doReturn(applications).when(ieapClientNBI).getApplications(Mockito.anyString(),
+					Mockito.anyString());
 
 			ApplicationsService applicationsService = ApplicationsServiceImpl.builder().ieapClientNBI(ieapClientNBI)
-					.sessionRepository(sessionRepository).build();
+					.xrProperties(xrProperties).sessionRepository(sessionRepository).build();
+
+			ResponseEntity<List<InlineResponse200>> response = applicationsService
+					.viewAllApplication(StringUtils.EMPTY);
+			assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
+		}
+
+		@Test
+		void whenSessionExpired() {
+
+			XRProperties xrProperties = new XRProperties();
+			xrProperties.setSessionValidTimeInSeconds(300l);
+
+			Token token = new Token("accessToken", "tokenType", 1, "scope");
+			Session session = new Session("user", "appProviderId", token, LocalDateTime.now().plusSeconds(1),
+					LocalDateTime.now().minusSeconds(300l));
+			SessionRepository sessionRepository = Mockito.mock(SessionRepository.class);
+			Mockito.doReturn(Optional.of(session)).when(sessionRepository).findById(Mockito.anyString());
+
+			IEAPApplication sample = new IEAPApplication();
+			sample.setAppDeploymentZones(List.of(new ZoneDetails()));
+			List<IEAPApplication> applications = List.of(sample, sample, sample);
+
+			IEAPClientNBI ieapClientNBI = Mockito.mock(IEAPClientNBI.class);
+			Mockito.doReturn(applications).when(ieapClientNBI).getApplications(Mockito.anyString(),
+					Mockito.anyString());
+
+			ApplicationsService applicationsService = ApplicationsServiceImpl.builder().ieapClientNBI(ieapClientNBI)
+					.sessionRepository(sessionRepository).xrProperties(xrProperties).build();
 
 			ResponseEntity<List<InlineResponse200>> response = applicationsService
 					.viewAllApplication(StringUtils.EMPTY);
@@ -106,7 +142,7 @@ class ApplicationsServiceImplTest {
 		void whenIEAPClientException() {
 
 			Token token = new Token("accessToken", "tokenType", 1, "scope");
-			Session session = new Session("user", "appProviderId", token, LocalDateTime.now());
+			Session session = new Session("user", "appProviderId", token, LocalDateTime.now(), LocalDateTime.now());
 			SessionRepository sessionRepository = Mockito.mock(SessionRepository.class);
 			Mockito.doReturn(Optional.of(session)).when(sessionRepository).findById(Mockito.anyString());
 
@@ -124,10 +160,10 @@ class ApplicationsServiceImplTest {
 			sampleTcSlice.setIeapZone("zoneId");
 			tcSliceMap.put("tcSlice", sampleTcSlice);
 			properties.setTcSlices(tcSliceMap);
-			
+			properties.setSessionValidTimeInSeconds(300l);
+
 			ApplicationsService applicationsService = ApplicationsServiceImpl.builder().ieapClientNBI(ieapClientNBI)
-					.xrProperties(properties)
-					.sessionRepository(sessionRepository).build();
+					.xrProperties(properties).sessionRepository(sessionRepository).build();
 
 			ResponseEntity<List<InlineResponse200>> response = applicationsService
 					.viewAllApplication(StringUtils.EMPTY);

@@ -34,4 +34,7 @@ public class Session {
 	
 	@NonNull
 	LocalDateTime ieapTokenCreatedAt;
+	
+	@NonNull
+	LocalDateTime createdAt;
 }

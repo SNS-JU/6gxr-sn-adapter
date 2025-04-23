@@ -38,7 +38,7 @@ public class ApplicationsServiceImpl implements ApplicationsService {
 	@Override
 	public ResponseEntity<List<InlineResponse200>> viewAllApplication(String sessionId) {
 
-		Optional<Session> session = SessionUtil.getSession(sessionId, sessionRepository);
+		Optional<Session> session = SessionUtil.getSession(sessionId, sessionRepository, xrProperties.getSessionValidTimeInSeconds());
 		if (session.isEmpty()) {
 			return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
 		}

@@ -53,7 +53,7 @@ public class ExperimentServiceImpl implements ExperimentService {
 	@Override
 	public ResponseEntity<Void> experimentExperimentNameDelete(String sessionId, String experimentName) {
 
-		Optional<Session> session = SessionUtil.getSession(sessionId, sessionRepository);
+		Optional<Session> session = SessionUtil.getSession(sessionId, sessionRepository, xrproperties.getSessionValidTimeInSeconds());
 		if (session.isEmpty()) {
 			return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
 		}
@@ -65,7 +65,7 @@ public class ExperimentServiceImpl implements ExperimentService {
 	@Override
 	public ResponseEntity<NetworkServiceTemplate> experimentExperimentNameGet(String sessionId, String experimentName) {
 
-		Optional<Session> session = SessionUtil.getSession(sessionId, sessionRepository);
+		Optional<Session> session = SessionUtil.getSession(sessionId, sessionRepository, xrproperties.getSessionValidTimeInSeconds());
 		if (session.isEmpty()) {
 			return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
 		}
@@ -82,7 +82,7 @@ public class ExperimentServiceImpl implements ExperimentService {
 	@Override
 	public ResponseEntity<List<NetworkServiceTemplate>> experimentGet(String sessionId) {
 
-		Optional<Session> session = SessionUtil.getSession(sessionId, sessionRepository);
+		Optional<Session> session = SessionUtil.getSession(sessionId, sessionRepository, xrproperties.getSessionValidTimeInSeconds());
 		if (session.isEmpty()) {
 			return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
 		}
@@ -96,7 +96,7 @@ public class ExperimentServiceImpl implements ExperimentService {
 	@Override
 	public ResponseEntity<Void> experimentPost(String sessionId, NetworkServiceTemplate body) {
 
-		Optional<Session> session = SessionUtil.getSession(sessionId, sessionRepository);
+		Optional<Session> session = SessionUtil.getSession(sessionId, sessionRepository, xrproperties.getSessionValidTimeInSeconds());
 		if (session.isEmpty()) {
 			return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
 		}
@@ -126,7 +126,7 @@ public class ExperimentServiceImpl implements ExperimentService {
 	public ResponseEntity<List<ExperimentError>> experimentRunExperimentNamePost(String sessionId,
 			String experimentName) {
 
-		Optional<Session> session = SessionUtil.getSession(sessionId, sessionRepository);
+		Optional<Session> session = SessionUtil.getSession(sessionId, sessionRepository, xrproperties.getSessionValidTimeInSeconds());
 		if (session.isEmpty()) {
 			return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
 		}
@@ -184,7 +184,7 @@ public class ExperimentServiceImpl implements ExperimentService {
 	public ResponseEntity<List<ExperimentError>> experimentTerminateExperimentNameDelete(String sessionId,
 			String experimentName) {
 
-		Optional<Session> session = SessionUtil.getSession(sessionId, sessionRepository);
+		Optional<Session> session = SessionUtil.getSession(sessionId, sessionRepository, xrproperties.getSessionValidTimeInSeconds());
 		if (session.isEmpty()) {
 			return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
 		}
@@ -299,6 +299,7 @@ public class ExperimentServiceImpl implements ExperimentService {
 		experiment.setIeapInstances(List.of());
 	}
 
+	//Only one experiment can be running at the same time 
 	public void acquireLock() throws Exception {
 
 		Optional<ExperimentLock> experimentLock = this.lockRepository.findById(this.xrproperties.getExperimentLockId());

@@ -24,8 +24,8 @@ metadata:
     app: {{ .Release.Name }}-sn-adapter
 spec:
   type: LoadBalancer
-#  externalIPs:
-#    - 10.6.71.75  # Specify the static IP here
+  externalIPs:
+    - 193.166.32.46  # Specify the static IP here
   ports:
     - port: 8081        # Exposed port outside the cluster
       targetPort: 8080  # Container port
