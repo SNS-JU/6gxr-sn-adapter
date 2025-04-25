@@ -1,9 +1,10 @@
 package com.capgemini.south_node_adapter.domain.model;
 
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
 import java.util.List;
 
 import com.capgemini.south_node_adapter.domain.model.constant.TargetNodeEnum;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import jakarta.validation.Valid;
@@ -13,6 +14,7 @@ import lombok.Setter;
 @Getter
 @Setter
 public class NetworkServiceTemplate {
+	
 	@JsonProperty("trialId")
 	private Integer trialId = null;
 
@@ -20,10 +22,12 @@ public class NetworkServiceTemplate {
 	private String experimentName = null;
 
 	@JsonProperty("startTime")
-	private OffsetDateTime startTime = null;
+	@JsonFormat(pattern = "dd/MM/yyyy hh:mm a", shape = JsonFormat.Shape.STRING)
+	private LocalDateTime startTime = null;
 
 	@JsonProperty("stopTime")
-	private OffsetDateTime stopTime = null;
+	@JsonFormat(pattern = "dd/MM/yyyy hh:mm a", shape = JsonFormat.Shape.STRING)
+	private LocalDateTime stopTime = null;
 
 	@JsonProperty("targetNode")
 	private TargetNodeEnum targetNode = null;
