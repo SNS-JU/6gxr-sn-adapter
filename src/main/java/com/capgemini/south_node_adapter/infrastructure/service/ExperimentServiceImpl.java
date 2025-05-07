@@ -242,7 +242,8 @@ public class ExperimentServiceImpl implements ExperimentService {
 						.append("opCountry", zoneDetails.getOpCountry()).append("operator", zoneDetails.getOperator())
 						.append("resourceConsumption", lcmDescriptorToLaunch.getResourceConsumption())
 						.append("zoneId", zoneDetails.getZoneId())
-						.append("flavourId", lcmDescriptorToLaunch.getFlavourId()).toString();
+						.append("flavourId", lcmDescriptorToLaunch.getFlavourId())
+						.append("infraId", lcmDescriptorToLaunch.getInfraId()).toString();
 
 				List<String> launchResult = this.ieapClientNBI.launchApplication(lcmDescriptorToLaunch.getAppId(),
 						session.getAppProviderId(), zoneInfo, false, lcmDescriptorToLaunch.getAppVersion(),
@@ -329,6 +330,10 @@ public class ExperimentServiceImpl implements ExperimentService {
 
 		List<SouthNodeExperiment> trialExperiments = this.southNodeNSTRepository
 				.findByNetworkServiceTemplate_TrialId(trialId);
+		
+		if(trialExperiments.isEmpty()) {
+			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+		}
 		
 		trialExperiments.stream().forEach(trialExperiment -> {
 
