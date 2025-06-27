@@ -37,3 +37,5 @@ tcSlices:
 
 experimentLockId: LOCK
 sessionValidTimeInSeconds: 420
+monitoringType: type_1
+monitoringName: SNAdapter

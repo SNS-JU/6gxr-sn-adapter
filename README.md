@@ -48,6 +48,10 @@ Does not require any, mongoDB can be installed locally and be pointed to if need
 ## Usage
 Run main class SouthNodeAdapterApplication as Java Application.
 
+##Debugging IEAP deployments
+
+ssh root@10.15.125.12 'tail -f /opt/aricent/ec/orchestrator/logs/orchestrator.log' | tee C:\Users\micro\Downloads\IEAPOrchestrator.log
+
 ## Contributing
 
 - Create an issue in Gitlab

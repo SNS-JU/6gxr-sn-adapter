@@ -22,6 +22,7 @@ import com.capgemini.south_node_adapter.infrastructure.auth.Token;
 import com.capgemini.south_node_adapter.infrastructure.configuration.XRProperties;
 import com.capgemini.south_node_adapter.infrastructure.feign.IEAPClientNBI;
 import com.capgemini.south_node_adapter.infrastructure.feign.NEFClient;
+import com.capgemini.south_node_adapter.infrastructure.feign.QosiumClient;
 import com.capgemini.south_node_adapter.infrastructure.feign.model.EnterpriseDetails;
 import com.capgemini.south_node_adapter.infrastructure.feign.model.ZoneDetails;
 import com.capgemini.south_node_adapter.infrastructure.persistence.entity.ExperimentLock;
@@ -50,10 +51,13 @@ public class ExperimentServiceImpl implements ExperimentService {
 
 	LockRepository lockRepository;
 
+	QosiumClient qosiumClient;
+
 	@Override
 	public ResponseEntity<Void> experimentExperimentNameDelete(String sessionId, String experimentName) {
 
-		Optional<Session> session = SessionUtil.getSession(sessionId, sessionRepository, xrproperties.getSessionValidTimeInSeconds());
+		Optional<Session> session = SessionUtil.getSession(sessionId, sessionRepository,
+				xrproperties.getSessionValidTimeInSeconds());
 		if (session.isEmpty()) {
 			return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
 		}
@@ -65,7 +69,8 @@ public class ExperimentServiceImpl implements ExperimentService {
 	@Override
 	public ResponseEntity<NetworkServiceTemplate> experimentExperimentNameGet(String sessionId, String experimentName) {
 
-		Optional<Session> session = SessionUtil.getSession(sessionId, sessionRepository, xrproperties.getSessionValidTimeInSeconds());
+		Optional<Session> session = SessionUtil.getSession(sessionId, sessionRepository,
+				xrproperties.getSessionValidTimeInSeconds());
 		if (session.isEmpty()) {
 			return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
 		}
@@ -82,7 +87,8 @@ public class ExperimentServiceImpl implements ExperimentService {
 	@Override
 	public ResponseEntity<List<NetworkServiceTemplate>> experimentGet(String sessionId) {
 
-		Optional<Session> session = SessionUtil.getSession(sessionId, sessionRepository, xrproperties.getSessionValidTimeInSeconds());
+		Optional<Session> session = SessionUtil.getSession(sessionId, sessionRepository,
+				xrproperties.getSessionValidTimeInSeconds());
 		if (session.isEmpty()) {
 			return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
 		}
@@ -96,7 +102,8 @@ public class ExperimentServiceImpl implements ExperimentService {
 	@Override
 	public ResponseEntity<Void> experimentPost(String sessionId, NetworkServiceTemplate body) {
 
-		Optional<Session> session = SessionUtil.getSession(sessionId, sessionRepository, xrproperties.getSessionValidTimeInSeconds());
+		Optional<Session> session = SessionUtil.getSession(sessionId, sessionRepository,
+				xrproperties.getSessionValidTimeInSeconds());
 		if (session.isEmpty()) {
 			return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
 		}
@@ -126,7 +133,8 @@ public class ExperimentServiceImpl implements ExperimentService {
 	public ResponseEntity<List<ExperimentError>> experimentRunExperimentNamePost(String sessionId,
 			String experimentName) {
 
-		Optional<Session> session = SessionUtil.getSession(sessionId, sessionRepository, xrproperties.getSessionValidTimeInSeconds());
+		Optional<Session> session = SessionUtil.getSession(sessionId, sessionRepository,
+				xrproperties.getSessionValidTimeInSeconds());
 		if (session.isEmpty()) {
 			return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
 		}
@@ -161,6 +169,18 @@ public class ExperimentServiceImpl implements ExperimentService {
 				this.feignIEAPApplicationPost(session.get(), experiment.getNetworkServiceTemplate(), zones, errors));
 		this.feignNEFApplicationPost(experiment.getNetworkServiceTemplate(), zones, errors);
 
+		try {
+			this.qosiumClient.startExperiment(this.xrproperties.getMonitoringType(),
+					this.xrproperties.getMonitoringName());
+		} catch (FeignException e) {
+			ExperimentError experimentError = new ExperimentError();
+			experimentError.setHttpStatus(HttpStatus.valueOf(e.status()).toString());
+			experimentError.setMessage(e.getMessage());
+			errors.add(experimentError);
+
+			return new ResponseEntity<>(errors, HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+
 		if (errors.isEmpty()) {
 
 			experiment.getNetworkServiceTemplate().getSouthNodeAdapterNetworkServiceTemplate()
@@ -184,7 +204,8 @@ public class ExperimentServiceImpl implements ExperimentService {
 	public ResponseEntity<List<ExperimentError>> experimentTerminateExperimentNameDelete(String sessionId,
 			String experimentName) {
 
-		Optional<Session> session = SessionUtil.getSession(sessionId, sessionRepository, xrproperties.getSessionValidTimeInSeconds());
+		Optional<Session> session = SessionUtil.getSession(sessionId, sessionRepository,
+				xrproperties.getSessionValidTimeInSeconds());
 		if (session.isEmpty()) {
 			return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
 		}
@@ -300,7 +321,7 @@ public class ExperimentServiceImpl implements ExperimentService {
 		experiment.setIeapInstances(List.of());
 	}
 
-	//Only one experiment can be running at the same time 
+	// Only one experiment can be running at the same time
 	public void acquireLock() throws Exception {
 
 		Optional<ExperimentLock> experimentLock = this.lockRepository.findById(this.xrproperties.getExperimentLockId());
@@ -330,11 +351,11 @@ public class ExperimentServiceImpl implements ExperimentService {
 
 		List<SouthNodeExperiment> trialExperiments = this.southNodeNSTRepository
 				.findByNetworkServiceTemplate_TrialId(trialId);
-		
-		if(trialExperiments.isEmpty()) {
+
+		if (trialExperiments.isEmpty()) {
 			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
 		}
-		
+
 		trialExperiments.stream().forEach(trialExperiment -> {
 
 			if (trialExperiment.getNetworkServiceTemplate().getSouthNodeAdapterNetworkServiceTemplate().getStatus()
@@ -342,11 +363,12 @@ public class ExperimentServiceImpl implements ExperimentService {
 
 				Token newIeapToken = ieapClientNBI.createAccessToken(SessionUtil.IEAP_CREDENTIALS);
 				trialExperiment.getIeapInstances().stream().forEach(ieapInstance -> {
-					
+
 					try {
-						
+
 						this.ieapClientNBI.terminateApplication(ieapInstance.appId(), ieapInstance.appInstanceId(),
 								ieapInstance.zoneId(), newIeapToken.getAccessToken());
+
 					} catch (Exception e) {
 					}
 				});

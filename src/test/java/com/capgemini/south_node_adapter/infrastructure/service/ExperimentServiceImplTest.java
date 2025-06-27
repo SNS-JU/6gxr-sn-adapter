@@ -331,7 +331,35 @@ class ExperimentServiceImplTest {
 	class ExperimentServiceImplTestEndTrialIdDelete {
 
 		@Test
-		void withoutSession() {
+		void withoutSessionTrialIdDoesntExist() {
+
+			SessionRepository sessionRepository = Mockito.mock(SessionRepository.class);
+			Session session = new Session("user", "appProviderId", new Token("accessToken", "tokenType", 1, "scope"),
+					LocalDateTime.now(), LocalDateTime.now());
+			Mockito.doReturn(Optional.of(session)).when(sessionRepository).findById(Mockito.anyString());
+
+			SouthNodeNSTRepository southNodeNSTRepository = Mockito.mock(SouthNodeNSTRepository.class);
+
+			SouthNodeAdapterNetworkServiceTemplate southNodeAdapterNetworkServiceTemplate = new SouthNodeAdapterNetworkServiceTemplate();
+			southNodeAdapterNetworkServiceTemplate.setStatus(StatusEnum.LAUNCH_SUCCESS);
+			NetworkServiceTemplate networkServiceTemplate = new NetworkServiceTemplate();
+			networkServiceTemplate.setSouthNodeAdapterNetworkServiceTemplate(southNodeAdapterNetworkServiceTemplate);
+
+			Mockito.doReturn(List.of()).when(southNodeNSTRepository)
+					.findByNetworkServiceTemplate_TrialId(Mockito.anyInt());
+
+			IEAPClientNBI ieapClientNBI = Mockito.mock(IEAPClientNBI.class);
+			Mockito.doReturn(new Token()).when(ieapClientNBI).createAccessToken(Mockito.any(Oauth2TokenBody.class));
+
+			ExperimentService experimentService = ExperimentServiceImpl.builder().ieapClientNBI(ieapClientNBI)
+					.sessionRepository(sessionRepository).southNodeNSTRepository(southNodeNSTRepository).build();
+
+			ResponseEntity<Void> response = experimentService.experimentEndTrialTrialIdDelete(0);
+			assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+		}
+
+		@Test
+		void withoutSessionTrialIdExists() {
 
 			SessionRepository sessionRepository = Mockito.mock(SessionRepository.class);
 			Session session = new Session("user", "appProviderId", new Token("accessToken", "tokenType", 1, "scope"),
@@ -351,14 +379,22 @@ class ExperimentServiceImplTest {
 			toBeDeleted.setNetworkServiceTemplate(networkServiceTemplate);
 			toBeDeleted.setIeapInstances(List.of(instance));
 
-			Mockito.doReturn(toBeDeleted).when(southNodeNSTRepository).findByUserAndExperimentName(Mockito.anyString(),
-					Mockito.anyString());
+			XRProperties xrProperties = new XRProperties();
+			xrProperties.setExperimentLockId(StringUtils.EMPTY);
+			LockRepository lockRepository = Mockito.mock(LockRepository.class);
+			ExperimentLock experimentLock = new ExperimentLock();
+			experimentLock.setLock(true);
+			Mockito.doReturn(Optional.of(experimentLock)).when(lockRepository).findById(Mockito.anyString());
+
+			Mockito.doReturn(List.of(toBeDeleted)).when(southNodeNSTRepository)
+					.findByNetworkServiceTemplate_TrialId(Mockito.anyInt());
 
 			IEAPClientNBI ieapClientNBI = Mockito.mock(IEAPClientNBI.class);
 			Mockito.doReturn(new Token()).when(ieapClientNBI).createAccessToken(Mockito.any(Oauth2TokenBody.class));
 
 			ExperimentService experimentService = ExperimentServiceImpl.builder().ieapClientNBI(ieapClientNBI)
-					.sessionRepository(sessionRepository).southNodeNSTRepository(southNodeNSTRepository).build();
+					.xrproperties(xrProperties).lockRepository(lockRepository).sessionRepository(sessionRepository)
+					.southNodeNSTRepository(southNodeNSTRepository).build();
 
 			ResponseEntity<Void> response = experimentService.experimentEndTrialTrialIdDelete(0);
 			assertEquals(HttpStatus.ACCEPTED, response.getStatusCode());
