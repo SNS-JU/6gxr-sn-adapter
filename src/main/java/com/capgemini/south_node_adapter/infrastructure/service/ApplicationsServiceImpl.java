@@ -52,7 +52,7 @@ public class ApplicationsServiceImpl implements ApplicationsService {
 
 	private ResponseEntity<List<InlineResponse200>> feignGetApplicationList(Session session) {
 		
-		SessionUtil.checkAndRefreshSessionIeapTokenIfExpired(session, ieapClientNBI, sessionRepository);
+		SessionUtil.checkAndRefreshSessionIeapTokenIfExpired(session, ieapClientNBI, sessionRepository, xrProperties);
         Map<String, ZoneDetails> zoneDetails = this.getUserIEAPZones(session, ieapClientNBI);
 
 		List<InlineResponse200> applications = this.ieapClientNBI

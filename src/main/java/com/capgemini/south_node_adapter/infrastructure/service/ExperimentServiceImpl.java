@@ -19,6 +19,7 @@ import com.capgemini.south_node_adapter.domain.model.constant.StatusEnum;
 import com.capgemini.south_node_adapter.domain.service.ExperimentService;
 import com.capgemini.south_node_adapter.infrastructure.auth.SessionUtil;
 import com.capgemini.south_node_adapter.infrastructure.auth.Token;
+import com.capgemini.south_node_adapter.infrastructure.configuration.TCSlice;
 import com.capgemini.south_node_adapter.infrastructure.configuration.XRProperties;
 import com.capgemini.south_node_adapter.infrastructure.feign.IEAPClientNBI;
 import com.capgemini.south_node_adapter.infrastructure.feign.NEFClient;
@@ -52,6 +53,8 @@ public class ExperimentServiceImpl implements ExperimentService {
 	LockRepository lockRepository;
 
 	QosiumClient qosiumClient;
+
+	// CREATE, READ AND DELETE EXPERIMENT //
 
 	@Override
 	public ResponseEntity<Void> experimentExperimentNameDelete(String sessionId, String experimentName) {
@@ -129,6 +132,8 @@ public class ExperimentServiceImpl implements ExperimentService {
 		return new ResponseEntity<>(HttpStatus.ACCEPTED);
 	}
 
+	// RUN AND TERMINATE EXPERIMENT //
+
 	@Override
 	public ResponseEntity<List<ExperimentError>> experimentRunExperimentNamePost(String sessionId,
 			String experimentName) {
@@ -174,7 +179,6 @@ public class ExperimentServiceImpl implements ExperimentService {
 					this.xrproperties.getMonitoringName());
 		} catch (FeignException e) {
 			ExperimentError experimentError = new ExperimentError();
-			experimentError.setHttpStatus(HttpStatus.valueOf(e.status()).toString());
 			experimentError.setMessage(e.getMessage());
 			errors.add(experimentError);
 
@@ -200,43 +204,11 @@ public class ExperimentServiceImpl implements ExperimentService {
 		}
 	}
 
-	@Override
-	public ResponseEntity<List<ExperimentError>> experimentTerminateExperimentNameDelete(String sessionId,
-			String experimentName) {
-
-		Optional<Session> session = SessionUtil.getSession(sessionId, sessionRepository,
-				xrproperties.getSessionValidTimeInSeconds());
-		if (session.isEmpty()) {
-			return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
-		}
-
-		SouthNodeExperiment experiment = this.southNodeNSTRepository
-				.findByUserAndExperimentName(session.get().getUser(), experimentName);
-		List<ExperimentError> errors = new ArrayList<>();
-		this.feignTerminateAllInstances(experiment, session.get(), errors);
-		this.releaseLock();
-
-		if (errors.isEmpty()) {
-
-			experiment.getNetworkServiceTemplate().getSouthNodeAdapterNetworkServiceTemplate()
-					.setStatus(StatusEnum.TERMINATE_SUCCESS);
-			southNodeNSTRepository.save(experiment);
-
-			return new ResponseEntity<>(HttpStatus.ACCEPTED);
-		} else {
-
-			experiment.getNetworkServiceTemplate().getSouthNodeAdapterNetworkServiceTemplate()
-					.setStatus(StatusEnum.TERMINATE_FAILED);
-			southNodeNSTRepository.save(experiment);
-
-			return new ResponseEntity<>(errors, HttpStatus.INTERNAL_SERVER_ERROR);
-		}
-	}
-
 	private Map<String, ZoneDetails> getUserIEAPZones(Session session, IEAPClientNBI ieapClientNBI,
 			List<ExperimentError> errors) {
 
-		SessionUtil.checkAndRefreshSessionIeapTokenIfExpired(session, ieapClientNBI, sessionRepository);
+		SessionUtil.checkAndRefreshSessionIeapTokenIfExpired(session, ieapClientNBI, sessionRepository,
+				this.xrproperties);
 		EnterpriseDetails user = ieapClientNBI.getUser(session.getAppProviderId(),
 				session.getIeapToken().getAccessToken());
 
@@ -249,22 +221,25 @@ public class ExperimentServiceImpl implements ExperimentService {
 	private List<SouthNodeExperimentIEAPInstance> feignIEAPApplicationPost(Session session, NetworkServiceTemplate body,
 			Map<String, ZoneDetails> zones, List<ExperimentError> errors) {
 
-		SessionUtil.checkAndRefreshSessionIeapTokenIfExpired(session, ieapClientNBI, sessionRepository);
+		SessionUtil.checkAndRefreshSessionIeapTokenIfExpired(session, ieapClientNBI, sessionRepository,
+				this.xrproperties);
 		List<SouthNodeExperimentIEAPInstance> ieapInstances = new ArrayList<>();
 
 		body.getSouthNodeAdapterNetworkServiceTemplate().getApplications().stream().forEach(lcmDescriptorToLaunch -> {
 
-			try {
+			TCSlice tcSlice = this.xrproperties.getTcSlices().get(lcmDescriptorToLaunch.getTcSlice());
+			ZoneDetails zoneDetails = zones.get(tcSlice.getIeapZone());
+			String infraId = StringUtils.isEmpty(lcmDescriptorToLaunch.getFlavourId()) ? null
+					: tcSlice.getAllowedFlavours().get(lcmDescriptorToLaunch.getFlavourId());
 
-				ZoneDetails zoneDetails = zones
-						.get(this.xrproperties.getTcSlices().get(lcmDescriptorToLaunch.getTcSlice()).getIeapZone());
+			try {
 
 				String zoneInfo = new ToStringBuilder(this, ToStringStyle.JSON_STYLE)
 						.append("opCountry", zoneDetails.getOpCountry()).append("operator", zoneDetails.getOperator())
 						.append("resourceConsumption", lcmDescriptorToLaunch.getResourceConsumption())
 						.append("zoneId", zoneDetails.getZoneId())
-						.append("flavourId", lcmDescriptorToLaunch.getFlavourId())
-						.append("infraId", lcmDescriptorToLaunch.getInfraId()).toString();
+						.append("flavourId", lcmDescriptorToLaunch.getFlavourId()).append("infraId", infraId)
+						.toString();
 
 				List<String> launchResult = this.ieapClientNBI.launchApplication(lcmDescriptorToLaunch.getAppId(),
 						session.getAppProviderId(), zoneInfo, false, lcmDescriptorToLaunch.getAppVersion(),
@@ -303,10 +278,54 @@ public class ExperimentServiceImpl implements ExperimentService {
 		});
 	}
 
+	@Override
+	public ResponseEntity<List<ExperimentError>> experimentTerminateExperimentNameDelete(String sessionId,
+			String experimentName) {
+
+		Optional<Session> session = SessionUtil.getSession(sessionId, sessionRepository,
+				xrproperties.getSessionValidTimeInSeconds());
+		if (session.isEmpty()) {
+			return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+		}
+
+		SouthNodeExperiment experiment = this.southNodeNSTRepository
+				.findByUserAndExperimentName(session.get().getUser(), experimentName);
+		List<ExperimentError> errors = new ArrayList<>();
+		this.feignTerminateAllInstances(experiment, session.get(), errors);
+		this.releaseLock();
+
+		try {
+			this.qosiumClient.stopExperiment(this.xrproperties.getMonitoringName());
+		} catch (FeignException e) {
+			ExperimentError experimentError = new ExperimentError();
+			experimentError.setMessage(e.getMessage());
+			errors.add(experimentError);
+
+			return new ResponseEntity<>(errors, HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+
+		if (errors.isEmpty()) {
+
+			experiment.getNetworkServiceTemplate().getSouthNodeAdapterNetworkServiceTemplate()
+					.setStatus(StatusEnum.TERMINATE_SUCCESS);
+			southNodeNSTRepository.save(experiment);
+
+			return new ResponseEntity<>(HttpStatus.ACCEPTED);
+		} else {
+
+			experiment.getNetworkServiceTemplate().getSouthNodeAdapterNetworkServiceTemplate()
+					.setStatus(StatusEnum.TERMINATE_FAILED);
+			southNodeNSTRepository.save(experiment);
+
+			return new ResponseEntity<>(errors, HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+	}
+
 	private void feignTerminateAllInstances(SouthNodeExperiment experiment, Session session,
 			List<ExperimentError> errors) {
 
-		SessionUtil.checkAndRefreshSessionIeapTokenIfExpired(session, ieapClientNBI, sessionRepository);
+		SessionUtil.checkAndRefreshSessionIeapTokenIfExpired(session, ieapClientNBI, sessionRepository,
+				this.xrproperties);
 		experiment.getIeapInstances().forEach(ieapInstance -> {
 			try {
 				this.ieapClientNBI.terminateApplication(ieapInstance.appId(), ieapInstance.appInstanceId(),
@@ -321,30 +340,7 @@ public class ExperimentServiceImpl implements ExperimentService {
 		experiment.setIeapInstances(List.of());
 	}
 
-	// Only one experiment can be running at the same time
-	public void acquireLock() throws Exception {
-
-		Optional<ExperimentLock> experimentLock = this.lockRepository.findById(this.xrproperties.getExperimentLockId());
-
-		if (experimentLock.isEmpty()) {
-			ExperimentLock newLock = new ExperimentLock(this.xrproperties.getExperimentLockId(), true);
-			this.lockRepository.save(newLock);
-		} else {
-
-			if (experimentLock.get().getLock()) {
-				throw new Exception();
-			} else {
-				experimentLock.get().setLock(true);
-				this.lockRepository.save(experimentLock.get());
-			}
-		}
-	}
-
-	public void releaseLock() {
-		ExperimentLock experimentLock = this.lockRepository.findById(this.xrproperties.getExperimentLockId()).get();
-		experimentLock.setLock(false);
-		this.lockRepository.save(experimentLock);
-	}
+	// CASCADE DELETION FOR UNIFIED WEB PORTAL //
 
 	@Override
 	public ResponseEntity<Void> experimentEndTrialTrialIdDelete(Integer trialId) {
@@ -361,7 +357,7 @@ public class ExperimentServiceImpl implements ExperimentService {
 			if (trialExperiment.getNetworkServiceTemplate().getSouthNodeAdapterNetworkServiceTemplate().getStatus()
 					.equals(StatusEnum.LAUNCH_SUCCESS)) {
 
-				Token newIeapToken = ieapClientNBI.createAccessToken(SessionUtil.IEAP_CREDENTIALS);
+				Token newIeapToken = ieapClientNBI.createAccessToken(xrproperties.getIeapAccess().getCredentials());
 				trialExperiment.getIeapInstances().stream().forEach(ieapInstance -> {
 
 					try {
@@ -379,5 +375,32 @@ public class ExperimentServiceImpl implements ExperimentService {
 		this.southNodeNSTRepository.deleteAll(trialExperiments);
 
 		return new ResponseEntity<>(HttpStatus.ACCEPTED);
+	}
+
+	// DB LOCK ON RUNNING EXPERIMENTS //
+
+	// Only one experiment can be running at the same time
+	private void acquireLock() throws Exception {
+
+		Optional<ExperimentLock> experimentLock = this.lockRepository.findById(this.xrproperties.getExperimentLockId());
+
+		if (experimentLock.isEmpty()) {
+			ExperimentLock newLock = new ExperimentLock(this.xrproperties.getExperimentLockId(), true);
+			this.lockRepository.save(newLock);
+		} else {
+
+			if (experimentLock.get().getLock()) {
+				throw new Exception();
+			} else {
+				experimentLock.get().setLock(true);
+				this.lockRepository.save(experimentLock.get());
+			}
+		}
+	}
+
+	private void releaseLock() {
+		ExperimentLock experimentLock = this.lockRepository.findById(this.xrproperties.getExperimentLockId()).get();
+		experimentLock.setLock(false);
+		this.lockRepository.save(experimentLock);
 	}
 }

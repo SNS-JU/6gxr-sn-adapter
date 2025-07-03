@@ -36,9 +36,9 @@ public class SouthNodeAdapterConfiguration {
 
 	@Bean
 	LoginService loginService(IEAPClientNBI ieapClientNBI, CredentialRepository credentialRepository,
-			SessionRepository sessionRepository) {
+			SessionRepository sessionRepository, XRProperties xrProperties) {
 		return LoginServiceImpl.builder().ieapClientNBI(ieapClientNBI).credentialRepository(credentialRepository)
-				.sessionRepository(sessionRepository).build();
+				.sessionRepository(sessionRepository).xrProperties(xrProperties).build();
 	}
 
 	@Bean

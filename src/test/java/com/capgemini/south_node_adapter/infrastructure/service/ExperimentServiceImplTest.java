@@ -23,6 +23,7 @@ import com.capgemini.south_node_adapter.domain.model.SouthNodeAdapterNetworkServ
 import com.capgemini.south_node_adapter.domain.model.constant.StatusEnum;
 import com.capgemini.south_node_adapter.domain.service.ExperimentService;
 import com.capgemini.south_node_adapter.infrastructure.auth.Token;
+import com.capgemini.south_node_adapter.infrastructure.configuration.IEAPAccess;
 import com.capgemini.south_node_adapter.infrastructure.configuration.TCSlice;
 import com.capgemini.south_node_adapter.infrastructure.configuration.XRProperties;
 import com.capgemini.south_node_adapter.infrastructure.feign.IEAPClientNBI;
@@ -379,7 +380,11 @@ class ExperimentServiceImplTest {
 			toBeDeleted.setNetworkServiceTemplate(networkServiceTemplate);
 			toBeDeleted.setIeapInstances(List.of(instance));
 
+			IEAPAccess ieapAccess = new IEAPAccess();
+			ieapAccess.setCredentials(new Oauth2TokenBody());
+			
 			XRProperties xrProperties = new XRProperties();
+			xrProperties.setIeapAccess(ieapAccess);
 			xrProperties.setExperimentLockId(StringUtils.EMPTY);
 			LockRepository lockRepository = Mockito.mock(LockRepository.class);
 			ExperimentLock experimentLock = new ExperimentLock();
