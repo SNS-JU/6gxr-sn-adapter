@@ -24,15 +24,16 @@ To deploy a new version via Docker, follow these steps:
 - docker ps
 - docker stop <previous-running-version-container-id>
 - docker run -d --name sn-adapter --network sn-adapter-6g-xr -p 30081:8080 sn-adapter:<new-version>
+- In case mongoDB is not running: docker run -d --network sn-adapter-6g-xr -p 30018:27017 -v /mnt/6gxr/data/db:/data/db mongo
 
 To deploy a new version via Helm Chart, follow these steps:
 
 - Update bootJar task in build.gradle with the new version.
 - Run bootJar task.
 - Update Dockerfile COPY command jar's version to the new one that has been compiled to bootJar.
-- Update helm\templates\deployment.yaml on this line "image: sn-adapter:<version>"
-- Inside Docker Desktop, go to the root folder of the project and perform "docker build --tag=sn-adapter:<version> ."
-- Once built succesfully, do "docker save -o <your-path>\sn-adapter-<version>.tar sn-webportal:<version>"
+- Update helm\templates\deployment.yaml on this line "image: sn-adapter:version"
+- Inside Docker Desktop, go to the root folder of the project and perform "docker build --tag=sn-adapter:version ."
+- Once built succesfully, do "docker save -o <your-path>\sn-adapter-version.tar sn-adapter:version"
 - Upload docker image to remote machine via SSH (currently using "ssh root@10.15.126.160" on /6g-xr main folder with password abc123) 
 - Upload /helm folder to remote machine via SSH (currently using "ssh root@10.15.126.160" on /6g-xr main folder with password abc123)
 - Go to parent folder and add the image in containerd with "ctr -n k8s.io images import sn-adapter-<version>.tar"

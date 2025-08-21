@@ -18,6 +18,8 @@ public class Oauth2TokenBody {
   @JsonProperty("client_secret")
   private String clientSecret;
 
+  private String realm;
+  
   private String scope;
 
 }

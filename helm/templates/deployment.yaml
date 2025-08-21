@@ -16,7 +16,7 @@ spec:
         - name: regcred-6g-xr
       containers:
         - name: sn-adapter
-          image: registry.gitlab.com/connectivity-and-networking/6g-xr/south-node-adapter/sn-adapter:3.3.2.1
+          image: docker.io/library/sn-adapter:3.3.2.4
           imagePullPolicy: Always
           ports:
             - containerPort: 8080

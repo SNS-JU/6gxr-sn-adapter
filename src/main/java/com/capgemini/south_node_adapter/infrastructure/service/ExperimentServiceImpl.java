@@ -348,10 +348,6 @@ public class ExperimentServiceImpl implements ExperimentService {
 		List<SouthNodeExperiment> trialExperiments = this.southNodeNSTRepository
 				.findByNetworkServiceTemplate_TrialId(trialId);
 
-		if (trialExperiments.isEmpty()) {
-			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-		}
-
 		trialExperiments.stream().forEach(trialExperiment -> {
 
 			if (trialExperiment.getNetworkServiceTemplate().getSouthNodeAdapterNetworkServiceTemplate().getStatus()
