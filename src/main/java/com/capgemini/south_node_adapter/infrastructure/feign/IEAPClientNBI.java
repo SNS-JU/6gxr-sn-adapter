@@ -15,7 +15,7 @@ import com.capgemini.south_node_adapter.infrastructure.auth.Token;
 import com.capgemini.south_node_adapter.infrastructure.feign.model.EnterpriseDetails;
 import com.capgemini.south_node_adapter.infrastructure.feign.model.IEAPApplication;
 import com.capgemini.south_node_adapter.infrastructure.feign.model.Oauth2TokenBody;
-import com.capgemini.south_node_adapter.infrastructure.feign.model.ZoneDetails;
+import com.capgemini.south_node_adapter.infrastructure.feign.model.IEAPZoneDetails;
 
 @FeignClient(value = "ieapClientNBI", url = "http://10.15.125.12:31000/operatorplatform/v1")
 public interface IEAPClientNBI {
@@ -36,7 +36,7 @@ public interface IEAPClientNBI {
 			@RequestHeader(HttpHeaders.AUTHORIZATION) String authHeader);
 
 	@GetMapping(value = "/edgeCloud/tenant/{domainName}/zones", consumes = "application/json", produces = "application/json")
-	List<ZoneDetails> getZones(@PathVariable("domainName") String domainName,
+	List<IEAPZoneDetails> getZones(@PathVariable("domainName") String domainName,
 			@RequestHeader(HttpHeaders.AUTHORIZATION) String authHeader);
 
 	@PostMapping(value = "/application/lcm/{appId}", consumes = "multipart/form-data", produces = "application/json")

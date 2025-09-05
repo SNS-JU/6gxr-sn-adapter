@@ -30,7 +30,7 @@ import com.capgemini.south_node_adapter.infrastructure.feign.IEAPClientNBI;
 import com.capgemini.south_node_adapter.infrastructure.feign.NEFClient;
 import com.capgemini.south_node_adapter.infrastructure.feign.model.EnterpriseDetails;
 import com.capgemini.south_node_adapter.infrastructure.feign.model.Oauth2TokenBody;
-import com.capgemini.south_node_adapter.infrastructure.feign.model.ZoneDetails;
+import com.capgemini.south_node_adapter.infrastructure.feign.model.IEAPZoneDetails;
 import com.capgemini.south_node_adapter.infrastructure.persistence.entity.ExperimentLock;
 import com.capgemini.south_node_adapter.infrastructure.persistence.entity.Session;
 import com.capgemini.south_node_adapter.infrastructure.persistence.entity.SouthNodeExperiment;
@@ -125,7 +125,7 @@ class ExperimentServiceImplTest {
 					.createAccessToken(Mockito.any(Oauth2TokenBody.class));
 			EnterpriseDetails user = new EnterpriseDetails();
 			Mockito.doReturn(user).when(ieapClientNBI).getUser(Mockito.anyString(), Mockito.anyString());
-			ZoneDetails zoneDetails = new ZoneDetails();
+			IEAPZoneDetails zoneDetails = new IEAPZoneDetails();
 			zoneDetails.setZoneId("zoneId");
 			Mockito.doReturn(List.of(zoneDetails)).when(ieapClientNBI).getZones(Mockito.anyString(),
 					Mockito.anyString());
@@ -360,7 +360,7 @@ class ExperimentServiceImplTest {
 			xrProperties.setExperimentLockId(StringUtils.EMPTY);
 			LockRepository lockRepository = Mockito.mock(LockRepository.class);
 			ExperimentLock experimentLock = new ExperimentLock();
-			experimentLock.setLock(true);
+			experimentLock.setLock(StringUtils.SPACE);
 			Mockito.doReturn(Optional.of(experimentLock)).when(lockRepository).findById(Mockito.anyString());
 
 			Mockito.doReturn(List.of(toBeDeleted)).when(southNodeNSTRepository)
@@ -402,7 +402,7 @@ class ExperimentServiceImplTest {
 
 			LockRepository lockRepository = Mockito.mock(LockRepository.class);
 			ExperimentLock experimentLock = new ExperimentLock();
-			experimentLock.setLock(true);
+			experimentLock.setLock(StringUtils.SPACE);
 			Mockito.doReturn(Optional.of(experimentLock)).when(lockRepository).findById(Mockito.anyString());
 
 			IEAPClientNBI ieapClientNBI = Mockito.mock(IEAPClientNBI.class);
@@ -438,7 +438,7 @@ class ExperimentServiceImplTest {
 
 			LockRepository lockRepository = Mockito.mock(LockRepository.class);
 			ExperimentLock experimentLock = new ExperimentLock();
-			experimentLock.setLock(false);
+			experimentLock.setLock(StringUtils.SPACE);
 			Mockito.doReturn(Optional.of(experimentLock)).when(lockRepository).findById(Mockito.anyString());
 
 			IEAPClientNBI ieapClientNBI = Mockito.mock(IEAPClientNBI.class);

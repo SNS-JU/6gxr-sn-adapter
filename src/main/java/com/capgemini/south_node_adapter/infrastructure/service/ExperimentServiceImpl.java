@@ -1,5 +1,7 @@
 package com.capgemini.south_node_adapter.infrastructure.service;
 
+import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -25,7 +27,7 @@ import com.capgemini.south_node_adapter.infrastructure.feign.IEAPClientNBI;
 import com.capgemini.south_node_adapter.infrastructure.feign.NEFClient;
 import com.capgemini.south_node_adapter.infrastructure.feign.QosiumClient;
 import com.capgemini.south_node_adapter.infrastructure.feign.model.EnterpriseDetails;
-import com.capgemini.south_node_adapter.infrastructure.feign.model.ZoneDetails;
+import com.capgemini.south_node_adapter.infrastructure.feign.model.IEAPZoneDetails;
 import com.capgemini.south_node_adapter.infrastructure.persistence.entity.ExperimentLock;
 import com.capgemini.south_node_adapter.infrastructure.persistence.entity.Session;
 import com.capgemini.south_node_adapter.infrastructure.persistence.entity.SouthNodeExperiment;
@@ -63,6 +65,14 @@ public class ExperimentServiceImpl implements ExperimentService {
 				xrproperties.getSessionValidTimeInSeconds());
 		if (session.isEmpty()) {
 			return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+		}
+
+		SouthNodeExperiment experiment = this.southNodeNSTRepository
+				.findByUserAndExperimentName(session.get().getUser(), experimentName);
+		Optional<ExperimentLock> experimentLock = this.lockRepository.findById(this.xrproperties.getExperimentLockId());
+
+		if (this.isLockedByExperiment(experiment.getId(), experimentLock)) {
+			this.experimentTerminateExperimentNameDelete(sessionId, experimentName);
 		}
 
 		this.southNodeNSTRepository.deleteByUserAndExperimentName(session.get().getUser(), experimentName);
@@ -144,45 +154,44 @@ public class ExperimentServiceImpl implements ExperimentService {
 			return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
 		}
 
-		try {
-			this.acquireLock();
-		} catch (Exception e) {
-			return new ResponseEntity<>(HttpStatus.LOCKED);
-		}
-
 		SouthNodeExperiment experiment = this.southNodeNSTRepository
 				.findByUserAndExperimentName(session.get().getUser(), experimentName);
+
 		if (Objects.isNull(experiment)) {
 			return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
 		}
 
+		try {
+			this.acquireLock(experiment.getId());
+		} catch (IllegalStateException e) {
+			return new ResponseEntity<>(HttpStatus.LOCKED);
+		}
+
 		List<ExperimentError> errors = new ArrayList<>();
-		Map<String, ZoneDetails> zones;
+		Map<String, IEAPZoneDetails> zones;
 
 		try {
 			zones = this.getUserIEAPZones(session.get(), ieapClientNBI, errors);
+			experiment.setIeapInstances(
+					this.feignIEAPApplicationPost(session.get(), experiment.getNetworkServiceTemplate(), zones, errors));
+			this.feignNEFApplicationPost(experiment.getNetworkServiceTemplate(), zones, errors);
 		} catch (FeignException e) {
 			ExperimentError experimentError = new ExperimentError();
 			experimentError.setHttpStatus(HttpStatus.valueOf(e.status()).toString());
 			experimentError.setMessage(e.getMessage());
 			errors.add(experimentError);
-
-			return new ResponseEntity<>(errors, HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 
-		experiment.setIeapInstances(
-				this.feignIEAPApplicationPost(session.get(), experiment.getNetworkServiceTemplate(), zones, errors));
-		this.feignNEFApplicationPost(experiment.getNetworkServiceTemplate(), zones, errors);
-
 		try {
-			this.qosiumClient.startExperiment(this.xrproperties.getMonitoringType(),
-					this.xrproperties.getMonitoringName());
+			String monitoringId = experiment.getId().concat(Timestamp.from(Instant.now()).toString())
+					.replace(StringUtils.SPACE, StringUtils.EMPTY);
+
+			experiment.setMonitoringId(monitoringId);
+			this.qosiumClient.startExperiment(this.xrproperties.getMonitoringType(), experiment.getMonitoringId());
 		} catch (FeignException e) {
 			ExperimentError experimentError = new ExperimentError();
 			experimentError.setMessage(e.getMessage());
 			errors.add(experimentError);
-
-			return new ResponseEntity<>(errors, HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 
 		if (errors.isEmpty()) {
@@ -199,12 +208,12 @@ public class ExperimentServiceImpl implements ExperimentService {
 			southNodeNSTRepository.save(experiment);
 			this.feignTerminateAllInstances(experiment, session.get(), errors);
 
-			this.releaseLock();
+			this.releaseLock(experiment.getId());
 			return new ResponseEntity<>(errors, HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 	}
 
-	private Map<String, ZoneDetails> getUserIEAPZones(Session session, IEAPClientNBI ieapClientNBI,
+	private Map<String, IEAPZoneDetails> getUserIEAPZones(Session session, IEAPClientNBI ieapClientNBI,
 			List<ExperimentError> errors) {
 
 		SessionUtil.checkAndRefreshSessionIeapTokenIfExpired(session, ieapClientNBI, sessionRepository,
@@ -213,13 +222,13 @@ public class ExperimentServiceImpl implements ExperimentService {
 				session.getIeapToken().getAccessToken());
 
 		String domain = StringUtils.isEmpty(user.getDomainName()) ? "OPDefault" : user.getDomainName();
-		List<ZoneDetails> zones = ieapClientNBI.getZones(domain, session.getIeapToken().getAccessToken());
+		List<IEAPZoneDetails> zones = ieapClientNBI.getZones(domain, session.getIeapToken().getAccessToken());
 
 		return zones.stream().collect(Collectors.toMap(zone -> zone.getZoneId(), zone -> zone));
 	}
 
 	private List<SouthNodeExperimentIEAPInstance> feignIEAPApplicationPost(Session session, NetworkServiceTemplate body,
-			Map<String, ZoneDetails> zones, List<ExperimentError> errors) {
+			Map<String, IEAPZoneDetails> zones, List<ExperimentError> errors) {
 
 		SessionUtil.checkAndRefreshSessionIeapTokenIfExpired(session, ieapClientNBI, sessionRepository,
 				this.xrproperties);
@@ -228,7 +237,7 @@ public class ExperimentServiceImpl implements ExperimentService {
 		body.getSouthNodeAdapterNetworkServiceTemplate().getApplications().stream().forEach(lcmDescriptorToLaunch -> {
 
 			TCSlice tcSlice = this.xrproperties.getTcSlices().get(lcmDescriptorToLaunch.getTcSlice());
-			ZoneDetails zoneDetails = zones.get(tcSlice.getIeapZone());
+			IEAPZoneDetails zoneDetails = zones.get(tcSlice.getIeapZone());
 			String infraId = StringUtils.isEmpty(lcmDescriptorToLaunch.getFlavourId()) ? null
 					: tcSlice.getAllowedFlavours().get(lcmDescriptorToLaunch.getFlavourId());
 
@@ -260,7 +269,7 @@ public class ExperimentServiceImpl implements ExperimentService {
 		return ieapInstances;
 	}
 
-	private void feignNEFApplicationPost(NetworkServiceTemplate body, Map<String, ZoneDetails> zones,
+	private void feignNEFApplicationPost(NetworkServiceTemplate body, Map<String, IEAPZoneDetails> zones,
 			List<ExperimentError> errors) {
 
 		body.getSouthNodeAdapterNetworkServiceTemplate().getSubscriptions().stream().forEach(subscription -> {
@@ -290,12 +299,13 @@ public class ExperimentServiceImpl implements ExperimentService {
 
 		SouthNodeExperiment experiment = this.southNodeNSTRepository
 				.findByUserAndExperimentName(session.get().getUser(), experimentName);
+		this.releaseLock(experiment.getId());
+
 		List<ExperimentError> errors = new ArrayList<>();
 		this.feignTerminateAllInstances(experiment, session.get(), errors);
-		this.releaseLock();
 
 		try {
-			this.qosiumClient.stopExperiment(this.xrproperties.getMonitoringName());
+			this.qosiumClient.stopExperiment(experiment.getMonitoringId());
 		} catch (FeignException e) {
 			ExperimentError experimentError = new ExperimentError();
 			experimentError.setMessage(e.getMessage());
@@ -349,6 +359,10 @@ public class ExperimentServiceImpl implements ExperimentService {
 				.findByNetworkServiceTemplate_TrialId(trialId);
 
 		trialExperiments.stream().forEach(trialExperiment -> {
+			this.releaseLock(trialExperiment.getId());
+		});
+
+		trialExperiments.stream().forEach(trialExperiment -> {
 
 			if (trialExperiment.getNetworkServiceTemplate().getSouthNodeAdapterNetworkServiceTemplate().getStatus()
 					.equals(StatusEnum.LAUNCH_SUCCESS)) {
@@ -364,8 +378,6 @@ public class ExperimentServiceImpl implements ExperimentService {
 					} catch (Exception e) {
 					}
 				});
-
-				this.releaseLock();
 			}
 		});
 		this.southNodeNSTRepository.deleteAll(trialExperiments);
@@ -376,27 +388,35 @@ public class ExperimentServiceImpl implements ExperimentService {
 	// DB LOCK ON RUNNING EXPERIMENTS //
 
 	// Only one experiment can be running at the same time
-	private void acquireLock() throws Exception {
+	private void acquireLock(String experimentId) throws IllegalStateException {
 
 		Optional<ExperimentLock> experimentLock = this.lockRepository.findById(this.xrproperties.getExperimentLockId());
 
 		if (experimentLock.isEmpty()) {
-			ExperimentLock newLock = new ExperimentLock(this.xrproperties.getExperimentLockId(), true);
+			ExperimentLock newLock = new ExperimentLock(this.xrproperties.getExperimentLockId(), experimentId);
 			this.lockRepository.save(newLock);
 		} else {
 
-			if (experimentLock.get().getLock()) {
-				throw new Exception();
-			} else {
-				experimentLock.get().setLock(true);
+			if (experimentLock.get().getLock().isEmpty()) {
+				experimentLock.get().setLock(experimentId);
 				this.lockRepository.save(experimentLock.get());
+			} else {
+				throw new IllegalStateException();
 			}
 		}
 	}
 
-	private void releaseLock() {
-		ExperimentLock experimentLock = this.lockRepository.findById(this.xrproperties.getExperimentLockId()).get();
-		experimentLock.setLock(false);
-		this.lockRepository.save(experimentLock);
+	private boolean isLockedByExperiment(String experimentId, Optional<ExperimentLock> experimentLock) {
+		return !experimentLock.isEmpty() && experimentLock.get().getLock().equals(experimentId);
+	}
+
+	private void releaseLock(String experimentId) {
+
+		Optional<ExperimentLock> experimentLock = this.lockRepository.findById(this.xrproperties.getExperimentLockId());
+
+		if (this.isLockedByExperiment(experimentId, experimentLock)) {
+			experimentLock.get().setLock(StringUtils.EMPTY);
+			this.lockRepository.save(experimentLock.get());
+		}
 	}
 }

@@ -18,6 +18,5 @@ public class XRProperties {
 	private String experimentLockId;
 	private Long sessionValidTimeInSeconds;
 	private String monitoringType;
-	private String monitoringName;
 	private IEAPAccess ieapAccess;
 }

@@ -22,6 +22,7 @@ public class SouthNodeExperiment {
 	
 	String user;
 	String experimentName;
+	String monitoringId;
 	
 	NetworkServiceTemplate networkServiceTemplate;
 	List<SouthNodeExperimentIEAPInstance> ieapInstances;

@@ -11,7 +11,7 @@ public class GlobalCorsConfig implements WebMvcConfigurer {
 	public void addCorsMappings(CorsRegistry registry) {
 
 		registry.addMapping("/**").allowedOrigins("http://193.166.32.46:4040", "http://10.15.126.160:5173",
-				"http://10.15.126.160:5174").allowedMethods("*").allowedHeaders("*")
+				"http://10.15.126.160:5174", "http://localhost:5173").allowedMethods("*").allowedHeaders("*")
 				.allowCredentials(true);
 	}
 }
