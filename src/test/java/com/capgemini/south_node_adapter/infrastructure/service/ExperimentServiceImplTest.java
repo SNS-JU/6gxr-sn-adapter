@@ -273,6 +273,7 @@ class ExperimentServiceImplTest {
 
 			XRProperties xrProperties = new XRProperties();
 			xrProperties.setSessionValidTimeInSeconds(300l);
+			xrProperties.setExperimentLockId(StringUtils.EMPTY);
 
 			SessionRepository sessionRepository = Mockito.mock(SessionRepository.class);
 			Session session = new Session("user", "appProviderId", new Token("accessToken", "tokenType", 1, "scope"),
@@ -289,9 +290,14 @@ class ExperimentServiceImplTest {
 
 			IEAPClientNBI ieapClientNBI = Mockito.mock(IEAPClientNBI.class);
 			Mockito.doReturn(new Token()).when(ieapClientNBI).createAccessToken(Mockito.any(Oauth2TokenBody.class));
+			
+			LockRepository lockRepository = Mockito.mock(LockRepository.class);
+			ExperimentLock experimentLock = new ExperimentLock();
+			experimentLock.setLock(StringUtils.SPACE);
+			Mockito.doReturn(Optional.of(experimentLock)).when(lockRepository).findById(Mockito.anyString());
 
 			ExperimentService experimentService = ExperimentServiceImpl.builder().ieapClientNBI(ieapClientNBI)
-					.xrproperties(xrProperties).sessionRepository(sessionRepository)
+					.xrproperties(xrProperties).sessionRepository(sessionRepository).lockRepository(lockRepository)
 					.southNodeNSTRepository(southNodeNSTRepository).build();
 
 			ResponseEntity<Void> response = experimentService.experimentExperimentNameDelete(StringUtils.EMPTY,
@@ -304,6 +310,7 @@ class ExperimentServiceImplTest {
 
 			XRProperties xrProperties = new XRProperties();
 			xrProperties.setSessionValidTimeInSeconds(300l);
+			xrProperties.setExperimentLockId(StringUtils.EMPTY);
 
 			SessionRepository sessionRepository = Mockito.mock(SessionRepository.class);
 			Mockito.doReturn(Optional.empty()).when(sessionRepository).findById(Mockito.anyString());
@@ -386,6 +393,7 @@ class ExperimentServiceImplTest {
 
 			XRProperties xrProperties = new XRProperties();
 			xrProperties.setSessionValidTimeInSeconds(300l);
+			xrProperties.setExperimentLockId(StringUtils.EMPTY);
 
 			SessionRepository sessionRepository = Mockito.mock(SessionRepository.class);
 			Session session = new Session("user", "appProviderId", new Token("accessToken", "tokenType", 1, "scope"),
@@ -409,7 +417,7 @@ class ExperimentServiceImplTest {
 			Mockito.doReturn(new Token()).when(ieapClientNBI).createAccessToken(Mockito.any(Oauth2TokenBody.class));
 
 			ExperimentService experimentService = ExperimentServiceImpl.builder().ieapClientNBI(ieapClientNBI)
-					.lockRepository(null).sessionRepository(sessionRepository).xrproperties(xrProperties)
+					.lockRepository(lockRepository).sessionRepository(sessionRepository).xrproperties(xrProperties)
 					.southNodeNSTRepository(southNodeNSTRepository).build();
 
 			ResponseEntity<List<ExperimentError>> response = experimentService
@@ -422,6 +430,7 @@ class ExperimentServiceImplTest {
 
 			XRProperties xrProperties = new XRProperties();
 			xrProperties.setSessionValidTimeInSeconds(300l);
+			xrProperties.setExperimentLockId(StringUtils.EMPTY);
 
 			SessionRepository sessionRepository = Mockito.mock(SessionRepository.class);
 			Session session = new Session("user", "appProviderId", new Token("accessToken", "tokenType", 1, "scope"),
@@ -445,7 +454,7 @@ class ExperimentServiceImplTest {
 			Mockito.doReturn(new Token()).when(ieapClientNBI).createAccessToken(Mockito.any(Oauth2TokenBody.class));
 
 			ExperimentService experimentService = ExperimentServiceImpl.builder().ieapClientNBI(ieapClientNBI)
-					.lockRepository(null).sessionRepository(sessionRepository).xrproperties(xrProperties)
+					.lockRepository(lockRepository).sessionRepository(sessionRepository).xrproperties(xrProperties)
 					.southNodeNSTRepository(southNodeNSTRepository).build();
 
 			ResponseEntity<List<ExperimentError>> response = experimentService
@@ -458,6 +467,7 @@ class ExperimentServiceImplTest {
 
 			XRProperties xrProperties = new XRProperties();
 			xrProperties.setSessionValidTimeInSeconds(300l);
+			xrProperties.setExperimentLockId(StringUtils.EMPTY);
 
 			SessionRepository sessionRepository = Mockito.mock(SessionRepository.class);
 			Mockito.doReturn(Optional.empty()).when(sessionRepository).findById(Mockito.anyString());
