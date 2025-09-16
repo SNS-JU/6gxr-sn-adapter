@@ -172,8 +172,8 @@ public class ExperimentServiceImpl implements ExperimentService {
 
 		try {
 			zones = this.getUserIEAPZones(session.get(), ieapClientNBI, errors);
-			experiment.setIeapInstances(
-					this.feignIEAPApplicationPost(session.get(), experiment.getNetworkServiceTemplate(), zones, errors));
+			experiment.setIeapInstances(this.feignIEAPApplicationPost(session.get(),
+					experiment.getNetworkServiceTemplate(), zones, errors));
 			this.feignNEFApplicationPost(experiment.getNetworkServiceTemplate(), zones, errors);
 		} catch (FeignException e) {
 			ExperimentError experimentError = new ExperimentError();
@@ -348,6 +348,7 @@ public class ExperimentServiceImpl implements ExperimentService {
 			}
 		});
 		experiment.setIeapInstances(List.of());
+		this.southNodeNSTRepository.save(experiment);
 	}
 
 	// CASCADE DELETION FOR UNIFIED WEB PORTAL //
