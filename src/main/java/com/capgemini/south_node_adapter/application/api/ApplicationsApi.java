@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 
-import com.capgemini.south_node_adapter.domain.model.InlineResponse200;
+import com.capgemini.south_node_adapter.domain.model.Application;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -35,11 +35,11 @@ public interface ApplicationsApi {
         @SecurityRequirement(name = "snAdapterOAuth", scopes = {
                     })    }, tags={ "VNF/CNF Management" })
     @ApiResponses(value = { 
-        @ApiResponse(responseCode = "200", description = "Application details", content = @Content(mediaType = "application/json", array = @ArraySchema(schema = @Schema(implementation = InlineResponse200.class)))) })
+        @ApiResponse(responseCode = "200", description = "Application details", content = @Content(mediaType = "application/json", array = @ArraySchema(schema = @Schema(implementation = Application.class)))) })
     @RequestMapping(value = "/applications",
         produces = { "application/json" }, 
         method = RequestMethod.GET)
-    ResponseEntity<List<InlineResponse200>> viewAllApplication(@NotNull @Parameter(in = ParameterIn.QUERY, description = "" ,required=true,schema=@Schema()) @Valid @RequestParam(value = "sessionId", required = true) String sessionId
+    ResponseEntity<List<Application>> viewAllApplication(@NotNull @Parameter(in = ParameterIn.QUERY, description = "" ,required=true,schema=@Schema()) @Valid @RequestParam(value = "sessionId", required = true) String sessionId
 );
 
 }

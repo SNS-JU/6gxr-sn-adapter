@@ -23,13 +23,14 @@ import com.capgemini.south_node_adapter.domain.model.SouthNodeAdapterNetworkServ
 import com.capgemini.south_node_adapter.domain.model.constant.StatusEnum;
 import com.capgemini.south_node_adapter.domain.service.ExperimentService;
 import com.capgemini.south_node_adapter.infrastructure.auth.Token;
+import com.capgemini.south_node_adapter.infrastructure.configuration.IEAPAccess;
 import com.capgemini.south_node_adapter.infrastructure.configuration.TCSlice;
 import com.capgemini.south_node_adapter.infrastructure.configuration.XRProperties;
 import com.capgemini.south_node_adapter.infrastructure.feign.IEAPClientNBI;
 import com.capgemini.south_node_adapter.infrastructure.feign.NEFClient;
 import com.capgemini.south_node_adapter.infrastructure.feign.model.EnterpriseDetails;
 import com.capgemini.south_node_adapter.infrastructure.feign.model.Oauth2TokenBody;
-import com.capgemini.south_node_adapter.infrastructure.feign.model.ZoneDetails;
+import com.capgemini.south_node_adapter.infrastructure.feign.model.IEAPZoneDetails;
 import com.capgemini.south_node_adapter.infrastructure.persistence.entity.ExperimentLock;
 import com.capgemini.south_node_adapter.infrastructure.persistence.entity.Session;
 import com.capgemini.south_node_adapter.infrastructure.persistence.entity.SouthNodeExperiment;
@@ -124,7 +125,7 @@ class ExperimentServiceImplTest {
 					.createAccessToken(Mockito.any(Oauth2TokenBody.class));
 			EnterpriseDetails user = new EnterpriseDetails();
 			Mockito.doReturn(user).when(ieapClientNBI).getUser(Mockito.anyString(), Mockito.anyString());
-			ZoneDetails zoneDetails = new ZoneDetails();
+			IEAPZoneDetails zoneDetails = new IEAPZoneDetails();
 			zoneDetails.setZoneId("zoneId");
 			Mockito.doReturn(List.of(zoneDetails)).when(ieapClientNBI).getZones(Mockito.anyString(),
 					Mockito.anyString());
@@ -272,6 +273,7 @@ class ExperimentServiceImplTest {
 
 			XRProperties xrProperties = new XRProperties();
 			xrProperties.setSessionValidTimeInSeconds(300l);
+			xrProperties.setExperimentLockId(StringUtils.EMPTY);
 
 			SessionRepository sessionRepository = Mockito.mock(SessionRepository.class);
 			Session session = new Session("user", "appProviderId", new Token("accessToken", "tokenType", 1, "scope"),
@@ -288,9 +290,14 @@ class ExperimentServiceImplTest {
 
 			IEAPClientNBI ieapClientNBI = Mockito.mock(IEAPClientNBI.class);
 			Mockito.doReturn(new Token()).when(ieapClientNBI).createAccessToken(Mockito.any(Oauth2TokenBody.class));
+			
+			LockRepository lockRepository = Mockito.mock(LockRepository.class);
+			ExperimentLock experimentLock = new ExperimentLock();
+			experimentLock.setLock(StringUtils.SPACE);
+			Mockito.doReturn(Optional.of(experimentLock)).when(lockRepository).findById(Mockito.anyString());
 
 			ExperimentService experimentService = ExperimentServiceImpl.builder().ieapClientNBI(ieapClientNBI)
-					.xrproperties(xrProperties).sessionRepository(sessionRepository)
+					.xrproperties(xrProperties).sessionRepository(sessionRepository).lockRepository(lockRepository)
 					.southNodeNSTRepository(southNodeNSTRepository).build();
 
 			ResponseEntity<Void> response = experimentService.experimentExperimentNameDelete(StringUtils.EMPTY,
@@ -303,6 +310,7 @@ class ExperimentServiceImplTest {
 
 			XRProperties xrProperties = new XRProperties();
 			xrProperties.setSessionValidTimeInSeconds(300l);
+			xrProperties.setExperimentLockId(StringUtils.EMPTY);
 
 			SessionRepository sessionRepository = Mockito.mock(SessionRepository.class);
 			Mockito.doReturn(Optional.empty()).when(sessionRepository).findById(Mockito.anyString());
@@ -331,7 +339,7 @@ class ExperimentServiceImplTest {
 	class ExperimentServiceImplTestEndTrialIdDelete {
 
 		@Test
-		void withoutSession() {
+		void withoutSessionTrialIdExists() {
 
 			SessionRepository sessionRepository = Mockito.mock(SessionRepository.class);
 			Session session = new Session("user", "appProviderId", new Token("accessToken", "tokenType", 1, "scope"),
@@ -351,14 +359,26 @@ class ExperimentServiceImplTest {
 			toBeDeleted.setNetworkServiceTemplate(networkServiceTemplate);
 			toBeDeleted.setIeapInstances(List.of(instance));
 
-			Mockito.doReturn(toBeDeleted).when(southNodeNSTRepository).findByUserAndExperimentName(Mockito.anyString(),
-					Mockito.anyString());
+			IEAPAccess ieapAccess = new IEAPAccess();
+			ieapAccess.setCredentials(new Oauth2TokenBody());
+			
+			XRProperties xrProperties = new XRProperties();
+			xrProperties.setIeapAccess(ieapAccess);
+			xrProperties.setExperimentLockId(StringUtils.EMPTY);
+			LockRepository lockRepository = Mockito.mock(LockRepository.class);
+			ExperimentLock experimentLock = new ExperimentLock();
+			experimentLock.setLock(StringUtils.SPACE);
+			Mockito.doReturn(Optional.of(experimentLock)).when(lockRepository).findById(Mockito.anyString());
+
+			Mockito.doReturn(List.of(toBeDeleted)).when(southNodeNSTRepository)
+					.findByNetworkServiceTemplate_TrialId(Mockito.anyInt());
 
 			IEAPClientNBI ieapClientNBI = Mockito.mock(IEAPClientNBI.class);
 			Mockito.doReturn(new Token()).when(ieapClientNBI).createAccessToken(Mockito.any(Oauth2TokenBody.class));
 
 			ExperimentService experimentService = ExperimentServiceImpl.builder().ieapClientNBI(ieapClientNBI)
-					.sessionRepository(sessionRepository).southNodeNSTRepository(southNodeNSTRepository).build();
+					.xrproperties(xrProperties).lockRepository(lockRepository).sessionRepository(sessionRepository)
+					.southNodeNSTRepository(southNodeNSTRepository).build();
 
 			ResponseEntity<Void> response = experimentService.experimentEndTrialTrialIdDelete(0);
 			assertEquals(HttpStatus.ACCEPTED, response.getStatusCode());
@@ -373,6 +393,7 @@ class ExperimentServiceImplTest {
 
 			XRProperties xrProperties = new XRProperties();
 			xrProperties.setSessionValidTimeInSeconds(300l);
+			xrProperties.setExperimentLockId(StringUtils.EMPTY);
 
 			SessionRepository sessionRepository = Mockito.mock(SessionRepository.class);
 			Session session = new Session("user", "appProviderId", new Token("accessToken", "tokenType", 1, "scope"),
@@ -389,14 +410,14 @@ class ExperimentServiceImplTest {
 
 			LockRepository lockRepository = Mockito.mock(LockRepository.class);
 			ExperimentLock experimentLock = new ExperimentLock();
-			experimentLock.setLock(true);
+			experimentLock.setLock(StringUtils.SPACE);
 			Mockito.doReturn(Optional.of(experimentLock)).when(lockRepository).findById(Mockito.anyString());
 
 			IEAPClientNBI ieapClientNBI = Mockito.mock(IEAPClientNBI.class);
 			Mockito.doReturn(new Token()).when(ieapClientNBI).createAccessToken(Mockito.any(Oauth2TokenBody.class));
 
 			ExperimentService experimentService = ExperimentServiceImpl.builder().ieapClientNBI(ieapClientNBI)
-					.lockRepository(null).sessionRepository(sessionRepository).xrproperties(xrProperties)
+					.lockRepository(lockRepository).sessionRepository(sessionRepository).xrproperties(xrProperties)
 					.southNodeNSTRepository(southNodeNSTRepository).build();
 
 			ResponseEntity<List<ExperimentError>> response = experimentService
@@ -409,6 +430,7 @@ class ExperimentServiceImplTest {
 
 			XRProperties xrProperties = new XRProperties();
 			xrProperties.setSessionValidTimeInSeconds(300l);
+			xrProperties.setExperimentLockId(StringUtils.EMPTY);
 
 			SessionRepository sessionRepository = Mockito.mock(SessionRepository.class);
 			Session session = new Session("user", "appProviderId", new Token("accessToken", "tokenType", 1, "scope"),
@@ -425,14 +447,14 @@ class ExperimentServiceImplTest {
 
 			LockRepository lockRepository = Mockito.mock(LockRepository.class);
 			ExperimentLock experimentLock = new ExperimentLock();
-			experimentLock.setLock(false);
+			experimentLock.setLock(StringUtils.SPACE);
 			Mockito.doReturn(Optional.of(experimentLock)).when(lockRepository).findById(Mockito.anyString());
 
 			IEAPClientNBI ieapClientNBI = Mockito.mock(IEAPClientNBI.class);
 			Mockito.doReturn(new Token()).when(ieapClientNBI).createAccessToken(Mockito.any(Oauth2TokenBody.class));
 
 			ExperimentService experimentService = ExperimentServiceImpl.builder().ieapClientNBI(ieapClientNBI)
-					.lockRepository(null).sessionRepository(sessionRepository).xrproperties(xrProperties)
+					.lockRepository(lockRepository).sessionRepository(sessionRepository).xrproperties(xrProperties)
 					.southNodeNSTRepository(southNodeNSTRepository).build();
 
 			ResponseEntity<List<ExperimentError>> response = experimentService
@@ -445,6 +467,7 @@ class ExperimentServiceImplTest {
 
 			XRProperties xrProperties = new XRProperties();
 			xrProperties.setSessionValidTimeInSeconds(300l);
+			xrProperties.setExperimentLockId(StringUtils.EMPTY);
 
 			SessionRepository sessionRepository = Mockito.mock(SessionRepository.class);
 			Mockito.doReturn(Optional.empty()).when(sessionRepository).findById(Mockito.anyString());

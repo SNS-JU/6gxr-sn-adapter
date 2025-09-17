@@ -7,12 +7,17 @@ spring:
     name: south-node-adapter
   data:
     mongodb:
-      #LOCAL
-      #uri: mongodb://localhost:27017/6GXR
-      #DOCKER
-      #uri: mongodb://mongodb-6g-xr:27017/6GXR
-      #HELM
       uri: mongodb://10.15.126.160:30018/6GXR
+
+ieapAccess:
+  credentials:
+    grant_type: client_credentials
+    client_id: ieap-client
+    client_secret: S6uboXdE8tJHLwJ5mUP4ov1q9NjbPwci
+    realm: mecportal
+    scope: all
+  bearerPrefix: Bearer
+  defaultDomain: OPDefault
 
 gpsis[0]: msisdn-49165001039
 gpsis[1]: msisdn-49165001028
@@ -25,15 +30,23 @@ tcSlices:
   madridLow:
     ieapZone: madridzone
     nefSlice: madrid-low
+    allowedFlavours: {}
   madridHigh:
     ieapZone: madridzone
     nefSlice: madrid-high
+    allowedFlavours: {}
   barcelonaLow:
     ieapZone: barcelonazone
     nefSlice: barcelona-low
+    allowedFlavours: 
+      K8sSmallISVGPU: 78f0b4f56000005
   barcelonaHigh:
     ieapZone: barcelonazone
     nefSlice: barcelona-high
+    allowedFlavours:
+      K8sSmallISVGPU: 78f0b4f56000005
 
 experimentLockId: LOCK
 sessionValidTimeInSeconds: 420
+monitoringType: type_1
+tenantId: valdevent1

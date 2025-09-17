@@ -1,4 +1,4 @@
-package com.capgemini.south_node_adapter.domain.model;
+package com.capgemini.south_node_adapter.infrastructure.feign.model;
 
 import com.capgemini.south_node_adapter.domain.model.constant.AppCategory;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -8,22 +8,23 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class AppMetaData   {
+public class IEAPApplicationAppMetaData   {
+  
   @JsonProperty("appName")
-  private String appName = null;
+  private String appName;
 
   @JsonProperty("version")
-  private String version = null;
+  private String version;
 
   @JsonProperty("appDescription")
-  private String appDescription = null;
+  private String appDescription;
 
   @JsonProperty("mobilitySupport")
-  private Boolean mobilitySupport = false;
+  private Boolean mobilitySupport;
 
   @JsonProperty("AccessToken")
-  private String accessToken = null;
+  private String accessToken;
 
   @JsonProperty("category")
-  private AppCategory category = null;
+  private AppCategory category;
 }

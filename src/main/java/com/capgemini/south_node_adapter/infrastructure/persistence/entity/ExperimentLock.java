@@ -20,5 +20,5 @@ public class ExperimentLock {
 	String id;
 	
 	@NonNull
-	Boolean lock;
+	String lock;
 }

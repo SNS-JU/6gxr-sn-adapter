@@ -11,6 +11,8 @@ import org.springframework.http.HttpStatus;
 
 import com.capgemini.south_node_adapter.domain.service.LoginService;
 import com.capgemini.south_node_adapter.infrastructure.auth.Token;
+import com.capgemini.south_node_adapter.infrastructure.configuration.IEAPAccess;
+import com.capgemini.south_node_adapter.infrastructure.configuration.XRProperties;
 import com.capgemini.south_node_adapter.infrastructure.feign.IEAPClientNBI;
 import com.capgemini.south_node_adapter.infrastructure.feign.model.Oauth2TokenBody;
 import com.capgemini.south_node_adapter.infrastructure.persistence.entity.Credential;
@@ -35,9 +37,15 @@ class LoginServiceImplTest {
 
 			IEAPClientNBI ieapClientNBI = Mockito.mock(IEAPClientNBI.class);
 			Mockito.doReturn(new Token()).when(ieapClientNBI).createAccessToken(Mockito.any(Oauth2TokenBody.class));
+			
+			IEAPAccess ieapAccess = new IEAPAccess();
+			ieapAccess.setCredentials(new Oauth2TokenBody());
+			
+			XRProperties xrProperties = new XRProperties();
+			xrProperties.setIeapAccess(ieapAccess);
 
 			LoginService loginService = LoginServiceImpl.builder().credentialRepository(credentialRepository)
-					.sessionRepository(sessionRepository).ieapClientNBI(ieapClientNBI).build();
+					.sessionRepository(sessionRepository).ieapClientNBI(ieapClientNBI).xrProperties(xrProperties).build();
 			
 			assertEquals(HttpStatus.CREATED, loginService.login("user", "password").getStatusCode());
 		}

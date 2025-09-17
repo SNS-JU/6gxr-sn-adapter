@@ -15,7 +15,7 @@ import org.mockito.Mockito;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
-import com.capgemini.south_node_adapter.domain.model.InlineResponse200;
+import com.capgemini.south_node_adapter.domain.model.Application;
 import com.capgemini.south_node_adapter.domain.service.ApplicationsService;
 import com.capgemini.south_node_adapter.infrastructure.auth.Token;
 import com.capgemini.south_node_adapter.infrastructure.configuration.TCSlice;
@@ -24,8 +24,8 @@ import com.capgemini.south_node_adapter.infrastructure.feign.IEAPClientNBI;
 import com.capgemini.south_node_adapter.infrastructure.feign.model.EnterpriseDetails;
 import com.capgemini.south_node_adapter.infrastructure.feign.model.Flavour;
 import com.capgemini.south_node_adapter.infrastructure.feign.model.IEAPApplication;
+import com.capgemini.south_node_adapter.infrastructure.feign.model.IEAPZoneDetails;
 import com.capgemini.south_node_adapter.infrastructure.feign.model.Oauth2TokenBody;
-import com.capgemini.south_node_adapter.infrastructure.feign.model.ZoneDetails;
 import com.capgemini.south_node_adapter.infrastructure.persistence.entity.Session;
 import com.capgemini.south_node_adapter.infrastructure.persistence.repository.SessionRepository;
 
@@ -46,10 +46,10 @@ class ApplicationsServiceImplTest {
 			SessionRepository sessionRepository = Mockito.mock(SessionRepository.class);
 			Mockito.doReturn(Optional.of(session)).when(sessionRepository).findById(Mockito.anyString());
 
-			ZoneDetails deploymentZoneDetails = new ZoneDetails();
-			deploymentZoneDetails.setZoneId("zoneId");
+			IEAPZoneDetails deploymentIEAPApplicationZoneDetails = new IEAPZoneDetails();
+			deploymentIEAPApplicationZoneDetails.setZoneId("zoneId");
 			IEAPApplication sample = new IEAPApplication();
-			sample.setAppDeploymentZones(List.of(deploymentZoneDetails));
+			sample.setAppDeploymentZones(List.of(deploymentIEAPApplicationZoneDetails));
 			List<IEAPApplication> applications = List.of(sample, sample, sample);
 
 			IEAPClientNBI ieapClientNBI = Mockito.mock(IEAPClientNBI.class);
@@ -62,10 +62,10 @@ class ApplicationsServiceImplTest {
 
 			Flavour flavour = new Flavour();
 			flavour.setFlavourId("flavour");
-			ZoneDetails ieapZoneDetails = new ZoneDetails();
-			ieapZoneDetails.setZoneId("zoneId");
-			ieapZoneDetails.setSupportedFlavours(List.of(flavour));
-			Mockito.doReturn(List.of(ieapZoneDetails)).when(ieapClientNBI).getZones(Mockito.anyString(),
+			IEAPZoneDetails ieapIEAPApplicationZoneDetails = new IEAPZoneDetails();
+			ieapIEAPApplicationZoneDetails.setZoneId("zoneId");
+			ieapIEAPApplicationZoneDetails.setSupportedFlavours(List.of(flavour));
+			Mockito.doReturn(List.of(ieapIEAPApplicationZoneDetails)).when(ieapClientNBI).getZones(Mockito.anyString(),
 					Mockito.anyString());
 
 			XRProperties properties = new XRProperties();
@@ -79,8 +79,7 @@ class ApplicationsServiceImplTest {
 			ApplicationsService applicationsService = ApplicationsServiceImpl.builder().ieapClientNBI(ieapClientNBI)
 					.xrProperties(properties).sessionRepository(sessionRepository).build();
 
-			ResponseEntity<List<InlineResponse200>> response = applicationsService
-					.viewAllApplication(StringUtils.EMPTY);
+			ResponseEntity<List<Application>> response = applicationsService.viewAllApplication(StringUtils.EMPTY);
 			assertEquals(HttpStatus.OK, response.getStatusCode());
 			assertEquals(3, response.getBody().size());
 		}
@@ -95,7 +94,7 @@ class ApplicationsServiceImplTest {
 			Mockito.doReturn(Optional.empty()).when(sessionRepository).findById(Mockito.anyString());
 
 			IEAPApplication sample = new IEAPApplication();
-			sample.setAppDeploymentZones(List.of(new ZoneDetails()));
+			sample.setAppDeploymentZones(List.of(new IEAPZoneDetails()));
 			List<IEAPApplication> applications = List.of(sample, sample, sample);
 
 			IEAPClientNBI ieapClientNBI = Mockito.mock(IEAPClientNBI.class);
@@ -105,8 +104,7 @@ class ApplicationsServiceImplTest {
 			ApplicationsService applicationsService = ApplicationsServiceImpl.builder().ieapClientNBI(ieapClientNBI)
 					.xrProperties(xrProperties).sessionRepository(sessionRepository).build();
 
-			ResponseEntity<List<InlineResponse200>> response = applicationsService
-					.viewAllApplication(StringUtils.EMPTY);
+			ResponseEntity<List<Application>> response = applicationsService.viewAllApplication(StringUtils.EMPTY);
 			assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
 		}
 
@@ -123,7 +121,7 @@ class ApplicationsServiceImplTest {
 			Mockito.doReturn(Optional.of(session)).when(sessionRepository).findById(Mockito.anyString());
 
 			IEAPApplication sample = new IEAPApplication();
-			sample.setAppDeploymentZones(List.of(new ZoneDetails()));
+			sample.setAppDeploymentZones(List.of(new IEAPZoneDetails()));
 			List<IEAPApplication> applications = List.of(sample, sample, sample);
 
 			IEAPClientNBI ieapClientNBI = Mockito.mock(IEAPClientNBI.class);
@@ -133,8 +131,7 @@ class ApplicationsServiceImplTest {
 			ApplicationsService applicationsService = ApplicationsServiceImpl.builder().ieapClientNBI(ieapClientNBI)
 					.sessionRepository(sessionRepository).xrProperties(xrProperties).build();
 
-			ResponseEntity<List<InlineResponse200>> response = applicationsService
-					.viewAllApplication(StringUtils.EMPTY);
+			ResponseEntity<List<Application>> response = applicationsService.viewAllApplication(StringUtils.EMPTY);
 			assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
 		}
 
@@ -165,8 +162,7 @@ class ApplicationsServiceImplTest {
 			ApplicationsService applicationsService = ApplicationsServiceImpl.builder().ieapClientNBI(ieapClientNBI)
 					.xrProperties(properties).sessionRepository(sessionRepository).build();
 
-			ResponseEntity<List<InlineResponse200>> response = applicationsService
-					.viewAllApplication(StringUtils.EMPTY);
+			ResponseEntity<List<Application>> response = applicationsService.viewAllApplication(StringUtils.EMPTY);
 			assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
 		}
 	}
