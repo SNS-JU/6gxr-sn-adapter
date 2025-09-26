@@ -164,7 +164,9 @@ public class ExperimentServiceImpl implements ExperimentService {
 		try {
 			this.acquireLock(experiment.getId());
 		} catch (IllegalStateException e) {
-			return new ResponseEntity<>(HttpStatus.LOCKED);
+			ExperimentError lockError = new ExperimentError();
+			lockError.setMessage(e.getMessage());
+			return new ResponseEntity<>(List.of(lockError), HttpStatus.LOCKED);
 		}
 
 		List<ExperimentError> errors = new ArrayList<>();
@@ -402,7 +404,8 @@ public class ExperimentServiceImpl implements ExperimentService {
 				experimentLock.get().setLock(experimentId);
 				this.lockRepository.save(experimentLock.get());
 			} else {
-				throw new IllegalStateException();
+				Optional<SouthNodeExperiment> usedBy = this.southNodeNSTRepository.findById(experimentLock.get().getLock());
+				throw new IllegalStateException(usedBy.isEmpty() ? StringUtils.EMPTY : usedBy.get().getExperimentName());
 			}
 		}
 	}

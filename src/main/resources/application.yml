@@ -25,6 +25,9 @@ gpsis[2]: msisdn-49165001035
 gpsis[3]: msisdn-49165001036
 gpsis[4]: msisdn-49165001037
 gpsis[5]: msisdn-49165001038
+gpsis[6]: msisdn-49165001052
+gpsis[7]: msisdn-49165001054
+gpsis[8]: msisdn-49165001055
 
 tcSlices:
   madridLow:
@@ -48,5 +51,5 @@ tcSlices:
 
 experimentLockId: LOCK
 sessionValidTimeInSeconds: 420
-monitoringType: type_1
+monitoringType: type_2
 tenantId: valdevent1
