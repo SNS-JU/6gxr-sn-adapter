@@ -14,6 +14,7 @@ import com.capgemini.south_node_adapter.infrastructure.feign.IEAPClientNBI;
 import com.capgemini.south_node_adapter.infrastructure.feign.NEFClient;
 import com.capgemini.south_node_adapter.infrastructure.feign.QosiumClient;
 import com.capgemini.south_node_adapter.infrastructure.persistence.repository.CredentialRepository;
+import com.capgemini.south_node_adapter.infrastructure.persistence.repository.GpsiRepository;
 import com.capgemini.south_node_adapter.infrastructure.persistence.repository.LockRepository;
 import com.capgemini.south_node_adapter.infrastructure.persistence.repository.SessionRepository;
 import com.capgemini.south_node_adapter.infrastructure.persistence.repository.SouthNodeNSTRepository;
@@ -49,13 +50,15 @@ public class SouthNodeAdapterConfiguration {
 	}
 
 	@Bean
-	GpsisService gpsisService(XRProperties xrProperties) {
-		return GpsisServiceImpl.builder().xrProperties(xrProperties).build();
+	GpsisService gpsisService(GpsiRepository gpsiRepository, SessionRepository sessionRepository,
+			XRProperties xrProperties) {
+		return GpsisServiceImpl.builder().gpsiRepository(gpsiRepository).sessionRepository(sessionRepository)
+				.xrproperties(xrProperties).build();
 	}
 
 	@Bean
-	SlicesService slicesService(XRProperties xrProperties) {
-		return SlicesServiceImpl.builder().xrProperties(xrProperties).build();
+	SlicesService slicesService(XRProperties xrProperties, SessionRepository sessionRepository) {
+		return SlicesServiceImpl.builder().xrProperties(xrProperties).sessionRepository(sessionRepository).build();
 	}
 
 	@Bean

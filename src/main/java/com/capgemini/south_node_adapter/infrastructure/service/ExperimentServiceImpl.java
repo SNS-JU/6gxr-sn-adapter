@@ -173,7 +173,7 @@ public class ExperimentServiceImpl implements ExperimentService {
 		Map<String, IEAPZoneDetails> zones;
 
 		try {
-			zones = this.getUserIEAPZones(session.get(), ieapClientNBI, errors);
+			zones = this.getUserIEAPZones(session.get(), ieapClientNBI);
 			experiment.setIeapInstances(this.feignIEAPApplicationPost(session.get(),
 					experiment.getNetworkServiceTemplate(), zones, errors));
 			this.feignNEFApplicationPost(experiment.getNetworkServiceTemplate(), zones, errors);
@@ -215,8 +215,7 @@ public class ExperimentServiceImpl implements ExperimentService {
 		}
 	}
 
-	private Map<String, IEAPZoneDetails> getUserIEAPZones(Session session, IEAPClientNBI ieapClientNBI,
-			List<ExperimentError> errors) {
+	private Map<String, IEAPZoneDetails> getUserIEAPZones(Session session, IEAPClientNBI ieapClientNBI) {
 
 		SessionUtil.checkAndRefreshSessionIeapTokenIfExpired(session, ieapClientNBI, sessionRepository,
 				this.xrproperties);

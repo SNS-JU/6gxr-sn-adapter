@@ -19,16 +19,6 @@ ieapAccess:
   bearerPrefix: Bearer
   defaultDomain: OPDefault
 
-gpsis[0]: msisdn-49165001039
-gpsis[1]: msisdn-49165001028
-gpsis[2]: msisdn-49165001035
-gpsis[3]: msisdn-49165001036
-gpsis[4]: msisdn-49165001037
-gpsis[5]: msisdn-49165001038
-gpsis[6]: msisdn-49165001052
-gpsis[7]: msisdn-49165001054
-gpsis[8]: msisdn-49165001055
-
 tcSlices:
   madridLow:
     ieapZone: madridzone

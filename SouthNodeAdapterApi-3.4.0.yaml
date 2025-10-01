@@ -1,0 +1,669 @@
+openapi: 3.0.3
+info:
+  version: '3.4.0'
+  title: 'South Node Adapter API'
+  description: |
+    Component that manages standard NSD incoming from the SN Experimenter Webpage
+    and internally manages virtualization on the particular implementations of each provider.
+ 
+      apiRoot:
+        default: https://localhost:8080
+
+paths:
+
+    /register:
+      post:
+        tags:
+          - Auth
+        parameters:
+          - name: user
+            in: query
+            required: true
+            schema:
+              type: string
+          - name: password
+            in: query
+            required: true
+            schema:
+              type: string
+              format: password
+          - name: appProviderId
+            in: query
+            required: true
+            schema:
+              $ref:  '#/components/schemas/AppProviderId'
+        responses:
+          '200':
+            description: Successful register
+      delete:
+        tags:
+          - Auth
+        parameters:
+          - name: user
+            in: query
+            required: true
+            schema:
+              type: string
+          - name: password
+            in: query
+            required: true
+            schema:
+              type: string
+              format: password
+          - name: appProviderId
+            in: query
+            required: true
+            schema:
+              $ref:  '#/components/schemas/AppProviderId'
+        responses:
+          '200':
+            description: Successful de-register
+    /login:
+      post:
+        tags:
+          - Auth
+        parameters:
+          - name: user
+            in: query
+            required: true
+            schema:
+              type: string
+          - name: password
+            in: query
+            required: true
+            schema:
+              type: string
+              format: password
+        responses:
+          '200':
+            description: Session id that must be used in subsequent requests
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    sessionId:
+                      type: string
+                      description: Session id
+      delete:
+        tags:
+          - Auth
+        parameters:
+          - name: sessionId
+            in: query
+            required: true
+            schema:
+              type: string
+        responses:
+          '200':
+            description: Clear saved authentication to end session
+
+
+    /applications:
+      get:
+        operationId: viewAllApplication
+        tags:
+          - VNF/CNF Management
+        security:
+          - snAdapterOAuth: []
+        parameters:
+          -   name: sessionId
+              in: query
+              required: true
+              schema:
+                type: string
+        responses:
+          '200':
+            description: Application details
+            content:
+              application/json:
+                schema:
+                  type: array
+                  items:
+                    type: object
+                    required:
+                      - appId
+                      - appDeploymentZones
+                      - appMetaData
+                      - appQoSProfile
+                      - appComponentSpecs
+                    properties:
+                      appId:
+                        $ref:  '#/components/schemas/AppIdentifier'
+                      appDeploymentTcSlices:
+                        description: Details about the tcSlices where the application should be made available
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            tcSlice:
+                              type: string
+                              description: The tcSlice name
+                            supportedFlavours:
+                              type: array
+                              description: Ids of requirement templates for application desployment.
+                              items:
+                                type: string
+                      appMetaData:
+                        $ref:  '#/components/schemas/AppMetaData'
+                      appQoSProfile:
+                        $ref:  '#/components/schemas/AppQoSProfile'
+                      appComponentSpecs:
+                        description: An application may consist of more than one component. Each component is associated with a descriptor and may exposes its services
+                          externally or internally. App providers are required to provide details about all these components, their associated descriptors and their DNS names.
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/AppComponentSpecs'
+
+    /gpsis:
+      get:
+        tags:
+          - UE Management
+        security:
+          - snAdapterOAuth: []
+        description: Retrieves the GPSI list of supported UEs.
+        parameters:
+          -   name: sessionId
+              in: query
+              required: true
+              schema:
+                type: string
+        responses:
+          '200':
+            description: OK
+            content:
+              application/json:
+                schema:
+                  type: array
+                  items:
+                    type: string
+      put:
+        tags:
+          - UE Management (API admin usage only)
+        security:
+          - snAdapterOAuth: []
+        description: Overwrites the GPSI list of supported UEs.
+        parameters:
+          -   name: sessionId
+              in: query
+              required: true
+              schema:
+                type: string
+        requestBody:
+          required: true
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+        responses:
+          '202':
+            description: ACCEPTED
+
+    /slices:
+      get:
+        tags:
+          - Network slicing
+        security:
+          - snAdapterOAuth: []
+        description: Retrieves the TC slice ids list.
+        parameters:
+          -   name: sessionId
+              in: query
+              required: true
+              schema:
+                type: string
+        responses:
+          '200':
+            description: OK
+            content:
+              application/json:
+                schema:
+                  type: array
+                  items:
+                    type: string
+
+    /experiment:
+      get:
+        description: Query all experiments created by the user.
+        tags:
+          - NST Management
+        security:
+          - snAdapterOAuth: []
+        parameters:
+          -   name: sessionId
+              in: query
+              required: true
+              schema:
+                type: string
+        responses:
+          '200':
+            description: Check status of current experiment.
+            content:
+              application/json:
+                schema:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/NetworkServiceTemplate'
+                  minItems: 0
+      post:
+        description: Save the experiment with the NST.
+        tags:
+          - NST Management
+        security:
+          - snAdapterOAuth: []
+        parameters:
+          -   name: sessionId
+              in: query
+              required: true
+              schema:
+                type: string
+        requestBody:
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NetworkServiceTemplate'
+        responses:
+          '202':
+            description: Experiment saved.
+
+    /experiment/{experimentName}:
+      get:
+        description: Query Network Service Template virtualization process.
+        tags:
+          - NST Management
+        security:
+          - snAdapterOAuth: []
+        parameters:
+          -   name: sessionId
+              in: query
+              required: true
+              schema:
+                type: string
+          -   name: experimentName
+              in: path
+              required: true
+              schema:
+                type: string
+        responses:
+          '200':
+            description: Check status of current experiment.
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/NetworkServiceTemplate'
+      delete:
+        description: Delete experiment from the database.
+        tags:
+          - NST Management
+        security:
+          - snAdapterOAuth: []
+        parameters:
+          -   name: sessionId
+              in: query
+              required: true
+              schema:
+                type: string
+          -   name: experimentName
+              in: path
+              required: true
+              schema:
+                type: string
+        responses:
+          '202':
+            description: Experiment data deleted.
+    
+    /experiment/run/{experimentName}:
+      post:
+        description: Start experiment virtualization process. Only one experiment can be running at the same time.
+        tags:
+          - NST Management
+        security:
+          - snAdapterOAuth: []
+        parameters:
+          -   name: sessionId
+              in: query
+              required: true
+              schema:
+                type: string
+          -   name: experimentName
+              in: path
+              required: true
+              schema:
+                type: string
+        responses:
+          '202':
+            description: Instances created by launched experiment.
+          '423':
+            description: Another user is executing an experiment.
+          '4XX':
+            description: At least one of the instances failed.
+            content:
+              application/json:
+                schema:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/ExperimentError'
+          '5XX':
+            description: At least one of the instances failed.
+            content:
+              application/json:
+                schema:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/ExperimentError'
+                  
+    /experiment/terminate/{experimentName}:
+      delete:
+        description: Finish experiment virtualization process.
+        tags:
+          - NST Management
+        security:
+          - snAdapterOAuth: []
+        parameters:
+          -   name: sessionId
+              in: query
+              required: true
+              schema:
+                type: string
+          -   name: experimentName
+              in: path
+              required: true
+              schema:
+                type: string
+        responses:
+          '202':
+            description: Instances deleted by launched experiment.
+          '4XX':
+            description: At least one of the instances failed.
+            content:
+              application/json:
+                schema:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/ExperimentError'
+          '5XX':
+            description: At least one of the instances failed.
+            content:
+              application/json:
+                schema:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/ExperimentError'
+    
+    /experiment/endTrial/{trialId}:
+      delete:
+        description: Terminate and delete all experiments that match the trialId.
+        tags:
+          - NST Management
+        security:
+          - snAdapterOAuth: []
+        parameters:
+          -   name: trialId
+              in: path
+              required: true
+              schema:
+                type: integer
+        responses:
+          '202':
+            description: Experiment data deleted.
+          '404':
+            description: Experiment data does not exist.
+
+components:
+
+  securitySchemes:
+
+    snAdapterOAuth:
+      type: oauth2
+      description: This API uses OAuth 2 with the implicit grant flow.
+      flows:
+        implicit:
+          authorizationUrl: /oauth2/authorize
+          scopes: {}
+
+  schemas:
+  
+    AppMetaData:
+      description: Application metadata details
+      type: object
+      required:
+        - appName
+        - version
+        - AccessToken
+      properties:
+        appName:
+          type: string
+          pattern: ^[A-Za-z][A-Za-z0-9_]{7,31}$
+          description: Name of the application.   Application provider defines a human readable name for the application
+        version:
+          type: string
+          pattern: ^(\d{1,2}\.)?(\d{1,2}\.)?(\d{1,2})$
+          description: Version info of the application
+        appDescription:
+          type: string
+          minLength: 16
+          maxLength: 256
+          description: Brief application description provided by application provider
+        mobilitySupport:
+          type: boolean
+          default: false
+          description: Indicates if an application is sensitive to user mobility and can be relocated. Default is FALSE
+        AccessToken:
+          type: string
+          pattern: ^[A-Za-z][A-Za-z0-9_]{31,63}$
+          description: An application Access key, to be used with UNI interface to authorize UCs access to a given application
+        category:
+          $ref:  '#/components/schemas/AppCategory'
+
+    AppQoSProfile:
+      description: Parameters corresponding to the performance constraints, tenancy details etc.
+      type: object
+      required:
+        - latencyConstraints
+      properties:
+        latencyConstraints:
+          type: string
+          enum:
+            - NONE
+            - LOW
+            - ULTRALOW
+          description: Latency requirements for the application.
+            Allowed values (non-standardized) are none, low and ultra-low. Ultra-Low may corresponds to range 15 - 30 msec,
+            Low correspond to range 30 - 50 msec. None means 51 and above
+        bandwidthRequired:
+          type: integer
+          format: int32
+          minimum: 1
+          description: Data transfer bandwidth requirement (minimum limit) for the application. It should in Mbits/sec
+        multiUserClients:
+          type: string
+          enum:
+            - APP_TYPE_SINGLE_USER
+            - APP_TYPE_MULTI_USER
+          default: APP_TYPE_SINGLE_USER
+          description: Single user type application is designed to serve just one client. Multi user type application is designed to serve multiple clients
+        noOfUsersPerAppInst:
+          type: integer
+          default: 1
+          description: Maximum number of clients that can connect to an instance of this application. This parameter is relevant only for application of type multi user
+        appProvisioning:
+          type: boolean
+          default: true
+          description: Defines if application can be instantiated or not
+
+    AppComponentSpecs:
+        type: object
+        required:
+          - serviceNameNB
+          - componentname
+          - artifactId
+        properties:
+          serviceNameNB:
+            type: string
+            pattern:  ^[A-Za-z0-9][A-Za-z0-9_]{6,62}[A-Za-z0-9]$
+            description:  Must be a valid RFC 1035 label name.  This defines the DNS name via which the component can be accessed over NBI.
+              Access via serviceNameNB is restricted on specific ports. Platform shall expose component access externally via this DNS name
+          serviceNameEW:
+            type: string
+            pattern:  ^[A-Za-z0-9][A-Za-z0-9_]{6,62}[A-Za-z0-9]$
+            description:  Must be a valid RFC 1035 label name.  This defines the DNS name via which the component can be Accessed via peer components. Access via serviceNameEW is open on all ports.   Platform shall not expose serviceNameEW externally outside edge.
+          componentName:
+            type: string
+            pattern:  ^[A-Za-z0-9][A-Za-z0-9_]{6,62}[A-Za-z0-9]$
+            description: Must be a valid RFC 1035 label name.  Component name must be unique with an application
+          artifactId:
+            $ref:  '#/components/schemas/ArtifactId'
+
+    NetworkServiceTemplate:
+      type: object
+      description: |
+        NSD template for the virtualization process.
+      properties:
+        trialId:
+          type: integer
+          description: Id forwarded from the Experimenter Webpage.
+        experimentName:
+          type: string
+          description: Name of the experiment to be launched.
+        startTime:
+          type: string
+          format: date-time
+          description: Time when the experiment began.
+        stopTime:
+          type: string
+          format: date-time
+          description: Time of the experiment's end.
+        targetNode:
+          type: string
+          description: Node location where the experiment will take place.
+          enum:
+            - NORTH
+            - SOUTH
+        targetFacility:
+          type: string
+          description: Infraestructure location where the experiment will take place.
+          default: "UNUSED"
+        northNodeAdapterNetworkServiceTemplate:
+          $ref:  '#/components/schemas/NorthNodeAdapterNetworkServiceTemplate'
+        southNodeAdapterNetworkServiceTemplate:
+          $ref:  '#/components/schemas/SouthNodeAdapterNetworkServiceTemplate'
+
+    NorthNodeAdapterNetworkServiceTemplate:
+      type: object
+      description: |
+        NSD template for the North Node virtualization process.
+
+    SouthNodeAdapterNetworkServiceTemplate:
+      type: object
+      description: |
+        NSD template for the South Node virtualization process.
+      properties:
+        applications:
+          description: Array of slice subscriptions
+          type: array
+          items:
+            type: object
+            description: |
+             Details about application and zones where application instance should be created. Field 'operator' and 'opCountry' should be specified if the zone belongs to a partner OP.
+            required:
+              - appId
+              - appProviderId
+              - appVersion
+            properties:
+              appId:
+                $ref: '#/components/schemas/AppIdentifier'
+              appVersion:
+                $ref: '#/components/schemas/Version'
+              tcSlice:
+                type: string
+              resourceConsumption:
+                type: string
+                enum:
+                  - RESERVED_RES_SHALL
+                  - RESERVED_RES_PREFER
+                  - RESERVED_RES_AVOID
+                  - RESERVED_RES_FORBID
+                default: RESERVED_RES_AVOID
+                description: Specifies if the application can be instantiated using  pre-reserved resource or not.  App provider can pre-reserve
+                  a pool of compute resource on each zone.  'RESERVED_RES_SHALL' instruct OP to use only the pre-reserved resources.
+                  'RESERVED_RES_PREFER' instruct to first try using  pre-reserved resource, if none available go for non-reserved  resources.
+                  'RESERVED_RES_AVOID' instruct OP  not to use pre-reserved resource if possible, it is a choice depending upon circumstances
+                  'RESERVED_RES_FORBID' instruct OP not to use pre-reserved resources.
+              flavourId:
+                type: string
+                description: Flavour identifier. Should corresponds to flavours indicated by the OP for the corresponding zone. Only to be specified when running on dedicated resources.
+              infraId:
+                type: string
+                description: Specifies the target infrastructure where dedicated resources will be reserved. Only to be specified when running on dedicated resources.
+        subscriptions:
+          description: Array of slice subscriptions
+          type: array
+          items:
+            type: object
+            description: End to end slice configuration
+            required:
+              - tcSlice
+              - gpsi
+            properties:
+              tcSlice:
+                type: string
+              gpsi:
+                type: string
+          minItems: 0
+        status:
+          description: Status
+          type: string
+          enum:
+            - CREATED
+            - LAUNCH_SUCCESS
+            - LAUNCH_FAILED
+            - TERMINATE_SUCCESS
+            - TERMINATE_FAILED
+
+    AppCategory:
+      description:  Possible categorization of the application
+      type: string
+      enum:
+        - IOT
+        - HEALTH_CARE
+        - GAMING
+        - VIRTUAL_REALITY
+        - SOCIALIZING
+        - SURVELIANCE
+        - ENTERTAINMENT
+        - CONNECTIVITY
+        - PRODUCTIVITY
+        - SECURITY
+        - IDUSTRIAL
+        - EDUCATION
+        - OTHERS
+
+    ArtifactId:
+      type: string
+      description: A globally unique identifier associated with the artifact. Originating OP generates this identifier when artifact is submitted over NBI.
+
+    AppIdentifier:
+      type: string
+      pattern: ^[A-Za-z][A-Za-z0-9_]{7,63}$
+      description: Identifier used to refer to an application. This Identifier is globally unique so that application can be identified uniquely across different OPs.
+
+    Version:
+      type: string
+      pattern:  ^(\d{1,2}\.)?(\d{1,2}\.)?(\d{1,2})$
+      description: Versioning info in the format major.minor.patch
+
+    AppProviderId:
+      type: string
+      pattern: ^[A-Za-z][A-Za-z0-9_]{7,63}$
+      description: UserId of the app provider.  Identifier is relevant only in context of this federation.
+
+    ExperimentError:
+      type: object
+      description: Error object that will be informed if the status code is other than 200 or 201
+      properties:
+        httpStatus:
+          type: string
+        message:
+          type: string

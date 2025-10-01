@@ -9,6 +9,7 @@ import java.util.List;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -29,16 +30,20 @@ import jakarta.validation.constraints.NotNull;
 @Validated
 public interface GpsisApi {
 
-    @Operation(summary = "", description = "Retrieves the GPSI list of supported UEs.", security = {
-        @SecurityRequirement(name = "snAdapterOAuth", scopes = {
-                    })    }, tags={ "UE Management" })
-    @ApiResponses(value = { 
-        @ApiResponse(responseCode = "200", description = "OK", content = @Content(mediaType = "application/json", array = @ArraySchema(schema = @Schema(implementation = String.class)))) })
-    @RequestMapping(value = "/gpsis",
-        produces = { "application/json" }, 
-        method = RequestMethod.GET)
-    ResponseEntity<List<String>> gpsisGet(@NotNull @Parameter(in = ParameterIn.QUERY, description = "" ,required=true,schema=@Schema()) @Valid @RequestParam(value = "sessionId", required = true) String sessionId
-);
+	@Operation(summary = "", description = "Retrieves the GPSI list of supported UEs.", security = {
+			@SecurityRequirement(name = "snAdapterOAuth", scopes = {}) }, tags = { "UE Management" })
+	@ApiResponses(value = {
+			@ApiResponse(responseCode = "200", description = "OK", content = @Content(mediaType = "application/json", array = @ArraySchema(schema = @Schema(implementation = String.class)))) })
+	@RequestMapping(value = "/gpsis", produces = { "application/json" }, method = RequestMethod.GET)
+	ResponseEntity<List<String>> gpsisGet(
+			@NotNull @Parameter(in = ParameterIn.QUERY, description = "", required = true, schema = @Schema()) @Valid @RequestParam(value = "sessionId", required = true) String sessionId);
 
+	@Operation(summary = "", description = "Overwrites the GPSI list of supported UEs.", security = {
+			@SecurityRequirement(name = "snAdapterOAuth", scopes = {}) }, tags = {
+					"UE Management (API admin usage only)" })
+	@ApiResponses(value = { @ApiResponse(responseCode = "202", description = "ACCEPTED") })
+	@RequestMapping(value = "/gpsis", consumes = { "application/json" }, method = RequestMethod.PUT)
+	ResponseEntity<Void> gpsisPut(
+			@NotNull @Parameter(in = ParameterIn.QUERY, description = "", required = true, schema = @Schema()) @Valid @RequestParam(value = "sessionId", required = true) String sessionId,
+			@Parameter(in = ParameterIn.DEFAULT, description = "", required = true, schema = @Schema()) @Valid @RequestBody List<String> body);
 }
-
