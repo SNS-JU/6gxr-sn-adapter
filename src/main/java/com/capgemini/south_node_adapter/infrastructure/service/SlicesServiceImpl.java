@@ -19,13 +19,12 @@ public class SlicesServiceImpl implements SlicesService {
 
 	XRProperties xrProperties;
 	SessionRepository sessionRepository;
-	XRProperties xrproperties;
 
 	@Override
 	public ResponseEntity<List<String>> slicesGet(String sessionId) {
 		
 		Optional<Session> session = SessionUtil.getSession(sessionId, sessionRepository,
-				xrproperties.getSessionValidTimeInSeconds());
+				xrProperties.getSessionValidTimeInSeconds());
 		if (session.isEmpty()) {
 			return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
 		}
