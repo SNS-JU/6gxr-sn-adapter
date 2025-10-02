@@ -164,14 +164,16 @@ public class ExperimentServiceImpl implements ExperimentService {
 		try {
 			this.acquireLock(experiment.getId());
 		} catch (IllegalStateException e) {
-			return new ResponseEntity<>(HttpStatus.LOCKED);
+			ExperimentError lockError = new ExperimentError();
+			lockError.setMessage(e.getMessage());
+			return new ResponseEntity<>(List.of(lockError), HttpStatus.LOCKED);
 		}
 
 		List<ExperimentError> errors = new ArrayList<>();
 		Map<String, IEAPZoneDetails> zones;
 
 		try {
-			zones = this.getUserIEAPZones(session.get(), ieapClientNBI, errors);
+			zones = this.getUserIEAPZones(session.get(), ieapClientNBI);
 			experiment.setIeapInstances(this.feignIEAPApplicationPost(session.get(),
 					experiment.getNetworkServiceTemplate(), zones, errors));
 			this.feignNEFApplicationPost(experiment.getNetworkServiceTemplate(), zones, errors);
@@ -213,8 +215,7 @@ public class ExperimentServiceImpl implements ExperimentService {
 		}
 	}
 
-	private Map<String, IEAPZoneDetails> getUserIEAPZones(Session session, IEAPClientNBI ieapClientNBI,
-			List<ExperimentError> errors) {
+	private Map<String, IEAPZoneDetails> getUserIEAPZones(Session session, IEAPClientNBI ieapClientNBI) {
 
 		SessionUtil.checkAndRefreshSessionIeapTokenIfExpired(session, ieapClientNBI, sessionRepository,
 				this.xrproperties);
@@ -402,7 +403,8 @@ public class ExperimentServiceImpl implements ExperimentService {
 				experimentLock.get().setLock(experimentId);
 				this.lockRepository.save(experimentLock.get());
 			} else {
-				throw new IllegalStateException();
+				Optional<SouthNodeExperiment> usedBy = this.southNodeNSTRepository.findById(experimentLock.get().getLock());
+				throw new IllegalStateException(usedBy.isEmpty() ? StringUtils.EMPTY : usedBy.get().getExperimentName());
 			}
 		}
 	}

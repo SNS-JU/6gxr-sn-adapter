@@ -27,4 +27,9 @@ public class GpsisApiController implements GpsisApi {
 		return this.gpsisService.gpsisGet(sessionId);
 	}
 
+	@Override
+	public ResponseEntity<Void> gpsisPut(@NotNull @Valid String sessionId, @Valid List<String> body) {
+		return this.gpsisService.gpsisPut(sessionId, body);
+	}
+
 }

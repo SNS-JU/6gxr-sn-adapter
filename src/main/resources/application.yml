@@ -19,13 +19,6 @@ ieapAccess:
   bearerPrefix: Bearer
   defaultDomain: OPDefault
 
-gpsis[0]: msisdn-49165001039
-gpsis[1]: msisdn-49165001028
-gpsis[2]: msisdn-49165001035
-gpsis[3]: msisdn-49165001036
-gpsis[4]: msisdn-49165001037
-gpsis[5]: msisdn-49165001038
-
 tcSlices:
   madridLow:
     ieapZone: madridzone
@@ -48,5 +41,5 @@ tcSlices:
 
 experimentLockId: LOCK
 sessionValidTimeInSeconds: 420
-monitoringType: type_1
+monitoringType: type_2
 tenantId: valdevent1
