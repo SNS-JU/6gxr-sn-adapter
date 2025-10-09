@@ -355,6 +355,7 @@ class ExperimentServiceImplTest {
 			southNodeAdapterNetworkServiceTemplate.setStatus(StatusEnum.LAUNCH_SUCCESS);
 			NetworkServiceTemplate networkServiceTemplate = new NetworkServiceTemplate();
 			networkServiceTemplate.setSouthNodeAdapterNetworkServiceTemplate(southNodeAdapterNetworkServiceTemplate);
+			networkServiceTemplate.setQosiumMonitoring(false);
 			SouthNodeExperiment toBeDeleted = new SouthNodeExperiment();
 			toBeDeleted.setNetworkServiceTemplate(networkServiceTemplate);
 			toBeDeleted.setIeapInstances(List.of(instance));
@@ -404,6 +405,9 @@ class ExperimentServiceImplTest {
 			SouthNodeExperimentIEAPInstance instance = new SouthNodeExperimentIEAPInstance(StringUtils.EMPTY,
 					StringUtils.EMPTY, StringUtils.EMPTY, StringUtils.EMPTY, StringUtils.EMPTY);
 			SouthNodeExperiment toBeDeleted = new SouthNodeExperiment();
+			NetworkServiceTemplate networkServiceTemplate = new NetworkServiceTemplate();
+			networkServiceTemplate.setQosiumMonitoring(true);
+			toBeDeleted.setNetworkServiceTemplate(networkServiceTemplate);
 			toBeDeleted.setIeapInstances(List.of(instance));
 			Mockito.doReturn(toBeDeleted).when(southNodeNSTRepository).findByUserAndExperimentName(Mockito.anyString(),
 					Mockito.anyString());
@@ -442,6 +446,9 @@ class ExperimentServiceImplTest {
 					StringUtils.EMPTY, StringUtils.EMPTY, StringUtils.EMPTY, StringUtils.EMPTY);
 			SouthNodeExperiment toBeDeleted = new SouthNodeExperiment();
 			toBeDeleted.setIeapInstances(List.of(instance));
+			NetworkServiceTemplate networkServiceTemplate = new NetworkServiceTemplate();
+			networkServiceTemplate.setQosiumMonitoring(true);
+			toBeDeleted.setNetworkServiceTemplate(networkServiceTemplate);
 			Mockito.doReturn(toBeDeleted).when(southNodeNSTRepository).findByUserAndExperimentName(Mockito.anyString(),
 					Mockito.anyString());
 

@@ -1,6 +1,6 @@
 openapi: 3.0.3
 info:
-  version: '3.4.0'
+  version: '3.5.0'
   title: 'South Node Adapter API'
   description: |
     Component that manages standard NSD incoming from the SN Experimenter Webpage
@@ -316,7 +316,7 @@ paths:
     
     /experiment/run/{experimentName}:
       post:
-        description: Start experiment virtualization process. Only one experiment can be running at the same time.
+        description: Start experiment virtualization process. Only one experiment can be running at the same time in Qosium monitoring.
         tags:
           - NST Management
         security:
@@ -545,15 +545,11 @@ components:
           type: string
           description: Infraestructure location where the experiment will take place.
           default: "UNUSED"
-        northNodeAdapterNetworkServiceTemplate:
-          $ref:  '#/components/schemas/NorthNodeAdapterNetworkServiceTemplate'
         southNodeAdapterNetworkServiceTemplate:
           $ref:  '#/components/schemas/SouthNodeAdapterNetworkServiceTemplate'
-
-    NorthNodeAdapterNetworkServiceTemplate:
-      type: object
-      description: |
-        NSD template for the North Node virtualization process.
+        qosiumMonitoring:
+          description: Sets whenever the application will be monitored in Qosium.
+          type: boolean
 
     SouthNodeAdapterNetworkServiceTemplate:
       type: object

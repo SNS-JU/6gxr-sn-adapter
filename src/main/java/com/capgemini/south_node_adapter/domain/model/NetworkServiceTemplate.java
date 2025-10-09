@@ -41,4 +41,7 @@ public class NetworkServiceTemplate {
 
 	@JsonProperty("southNodeAdapterNetworkServiceTemplate")
 	private SouthNodeAdapterNetworkServiceTemplate southNodeAdapterNetworkServiceTemplate = null;
+	
+	@JsonProperty("qosiumMonitoring")
+	private Boolean qosiumMonitoring = null;
 }
