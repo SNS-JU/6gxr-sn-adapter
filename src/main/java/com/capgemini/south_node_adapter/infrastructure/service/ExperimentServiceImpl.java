@@ -63,19 +63,13 @@ public class ExperimentServiceImpl implements ExperimentService {
 
 		Optional<Session> session = SessionUtil.getSession(sessionId, sessionRepository,
 				xrproperties.getSessionValidTimeInSeconds());
+		
 		if (session.isEmpty()) {
 			return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
 		}
 
-		SouthNodeExperiment experiment = this.southNodeNSTRepository
-				.findByUserAndExperimentName(session.get().getUser(), experimentName);
-		Optional<ExperimentLock> experimentLock = this.lockRepository.findById(this.xrproperties.getExperimentLockId());
-
-		if (this.isLockedByQosiumExperiment(experiment.getId(), experimentLock)) {
-			this.experimentTerminateExperimentNameDelete(sessionId, experimentName);
-		}
-
 		this.southNodeNSTRepository.deleteByUserAndExperimentName(session.get().getUser(), experimentName);
+		
 		return new ResponseEntity<>(HttpStatus.ACCEPTED);
 	}
 
