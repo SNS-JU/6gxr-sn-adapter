@@ -18,6 +18,7 @@ import org.springframework.http.ResponseEntity;
 import com.capgemini.south_node_adapter.domain.model.Application;
 import com.capgemini.south_node_adapter.domain.service.ApplicationsService;
 import com.capgemini.south_node_adapter.infrastructure.auth.Token;
+import com.capgemini.south_node_adapter.infrastructure.configuration.IEAPAccess;
 import com.capgemini.south_node_adapter.infrastructure.configuration.TCSlice;
 import com.capgemini.south_node_adapter.infrastructure.configuration.XRProperties;
 import com.capgemini.south_node_adapter.infrastructure.feign.IEAPClientNBI;
@@ -69,10 +70,16 @@ class ApplicationsServiceImplTest {
 					Mockito.anyString());
 
 			XRProperties properties = new XRProperties();
+			properties.setIeapAccess(new IEAPAccess());
+			TCSlice tcSlice = new TCSlice();
+			tcSlice.setAllowedFlavours(Map.of("flavour","infraId","flavour2","infraId2"));
+			properties.setTcSlices(Map.of("tcSlice", tcSlice));
+			
 			Map<String, TCSlice> tcSliceMap = new HashMap<String, TCSlice>();
 			TCSlice sampleTcSlice = new TCSlice();
 			sampleTcSlice.setIeapZone("zoneId");
 			tcSliceMap.put("tcSlice", sampleTcSlice);
+			
 			properties.setTcSlices(tcSliceMap);
 			properties.setSessionValidTimeInSeconds(300l);
 
@@ -82,6 +89,7 @@ class ApplicationsServiceImplTest {
 			ResponseEntity<List<Application>> response = applicationsService.viewAllApplication(StringUtils.EMPTY);
 			assertEquals(HttpStatus.OK, response.getStatusCode());
 			assertEquals(3, response.getBody().size());
+			assertEquals(1, response.getBody().getFirst().getAppDeploymentTcSlices().getFirst().getSupportedFlavours().size());
 		}
 
 		@Test

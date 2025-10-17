@@ -66,5 +66,5 @@ tasks.named('test') {
 
 bootJar {
     archiveBaseName = 'sn-adapter'
-    archiveVersion = '3.5.0.0'
+    archiveVersion = '3.5.0.1'
 }

@@ -38,7 +38,8 @@ public class ApplicationsServiceImpl implements ApplicationsService {
 	@Override
 	public ResponseEntity<List<Application>> viewAllApplication(String sessionId) {
 
-		Optional<Session> session = SessionUtil.getSession(sessionId, sessionRepository, xrProperties.getSessionValidTimeInSeconds());
+		Optional<Session> session = SessionUtil.getSession(sessionId, sessionRepository,
+				xrProperties.getSessionValidTimeInSeconds());
 		if (session.isEmpty()) {
 			return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
 		}
@@ -51,14 +52,14 @@ public class ApplicationsServiceImpl implements ApplicationsService {
 	}
 
 	private ResponseEntity<List<Application>> feignGetApplicationList(Session session) {
-		
+
 		SessionUtil.checkAndRefreshSessionIeapTokenIfExpired(session, ieapClientNBI, sessionRepository, xrProperties);
-        Map<String, IEAPZoneDetails> zoneDetails = this.getUserIEAPZones(session, ieapClientNBI);
+		Map<String, IEAPZoneDetails> zoneDetails = this.getUserIEAPZones(session, ieapClientNBI);
 
 		List<Application> applications = this.ieapClientNBI
 				.getApplications(session.getAppProviderId(), session.getIeapToken().getAccessToken()).stream()
 				.map(app -> {
-					
+
 					Application response = new Application();
 					response.setAppId(app.getAppId());
 					response.setAppComponentSpecs(app.getAppComponentSpecs());
@@ -77,8 +78,15 @@ public class ApplicationsServiceImpl implements ApplicationsService {
 							ApplicationsAppDeploymentTcSlices slice = new ApplicationsAppDeploymentTcSlices();
 
 							slice.setTcSlice(mappedTcSlice);
-							slice.setSupportedFlavours(zoneDetails.get(ieapZoneDetails.getZoneId())
-									.getSupportedFlavours().stream().map(Flavour::getFlavourId).toList());
+
+							List<String> allowedFlavours = xrProperties.getTcSlices().get(mappedTcSlice)
+									.getAllowedFlavours().entrySet().stream().map(entry -> entry.getKey()).toList();
+
+							List<String> existingFlavours = zoneDetails.get(ieapZoneDetails.getZoneId())
+									.getSupportedFlavours().stream().map(Flavour::getFlavourId).toList();
+
+							slice.setSupportedFlavours(
+									allowedFlavours.stream().filter(existingFlavours::contains).toList());
 
 							tcSlices.add(slice);
 						});
@@ -89,7 +97,7 @@ public class ApplicationsServiceImpl implements ApplicationsService {
 
 		return new ResponseEntity<>(applications, HttpStatus.OK);
 	}
-	
+
 	private Map<String, IEAPZoneDetails> getUserIEAPZones(Session session, IEAPClientNBI ieapClientNBI) {
 
 		EnterpriseDetails user = ieapClientNBI.getUser(session.getAppProviderId(),
