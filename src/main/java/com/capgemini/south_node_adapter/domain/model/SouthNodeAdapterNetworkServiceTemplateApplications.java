@@ -12,6 +12,7 @@ import lombok.Setter;
 @Getter
 @Setter
 public class SouthNodeAdapterNetworkServiceTemplateApplications {
+
 	@JsonProperty("appId")
 
 	private String appId = null;
@@ -26,17 +27,15 @@ public class SouthNodeAdapterNetworkServiceTemplateApplications {
 	@JsonSetter(nulls = Nulls.FAIL) // FAIL setting if the value is null
 	private String tcSlice = null;
 
-	@JsonProperty("flavourId")
-
-	@JsonInclude(JsonInclude.Include.NON_ABSENT) // Exclude from JSON if absent
-	@JsonSetter(nulls = Nulls.FAIL) // FAIL setting if the value is null
-	private String flavourId = null;
-
-
-
 	@JsonProperty("resourceConsumption")
 
 	@JsonInclude(JsonInclude.Include.NON_ABSENT) // Exclude from JSON if absent
 	@JsonSetter(nulls = Nulls.FAIL) // FAIL setting if the value is null
 	private ResourceConsumptionEnum resourceConsumption = ResourceConsumptionEnum.RESERVED_RES_AVOID;
+
+	@JsonProperty("flavourId")
+
+	@JsonInclude(JsonInclude.Include.NON_ABSENT) // Exclude from JSON if absent
+	@JsonSetter(nulls = Nulls.FAIL) // FAIL setting if the value is null
+	private String flavourId = null;
 }

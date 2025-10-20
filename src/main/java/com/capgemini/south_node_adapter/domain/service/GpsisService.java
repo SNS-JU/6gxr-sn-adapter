@@ -6,4 +6,5 @@ import org.springframework.http.ResponseEntity;
 
 public interface GpsisService {
 	public ResponseEntity<List<String>> gpsisGet(String sessionId);
+	public ResponseEntity<Void> gpsisPut(String sessionId, List<String> body);
 }

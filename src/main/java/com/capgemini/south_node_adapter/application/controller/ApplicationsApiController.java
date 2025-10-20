@@ -7,7 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.capgemini.south_node_adapter.application.api.ApplicationsApi;
-import com.capgemini.south_node_adapter.domain.model.InlineResponse200;
+import com.capgemini.south_node_adapter.domain.model.Application;
 import com.capgemini.south_node_adapter.domain.service.ApplicationsService;
 
 import jakarta.validation.Valid;
@@ -20,7 +20,7 @@ public class ApplicationsApiController implements ApplicationsApi {
 	ApplicationsService applicationsService;
 
 	@Override
-	public ResponseEntity<List<InlineResponse200>> viewAllApplication(@NotNull @Valid String sessionId) {
+	public ResponseEntity<List<Application>> viewAllApplication(@NotNull @Valid String sessionId) {
 		return this.applicationsService.viewAllApplication(sessionId);
 	}
 }

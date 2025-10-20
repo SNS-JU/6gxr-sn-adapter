@@ -4,8 +4,8 @@ import java.util.List;
 
 import org.springframework.http.ResponseEntity;
 
-import com.capgemini.south_node_adapter.domain.model.InlineResponse200;
+import com.capgemini.south_node_adapter.domain.model.Application;
 
 public interface ApplicationsService {
-	public ResponseEntity<List<InlineResponse200>> viewAllApplication(String sessionId);
+	public ResponseEntity<List<Application>> viewAllApplication(String sessionId);
 }

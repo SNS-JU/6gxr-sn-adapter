@@ -2,18 +2,14 @@ package com.capgemini.south_node_adapter.infrastructure.feign.model;
 
 import java.util.List;
 
-import org.springframework.validation.annotation.Validated;
-
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import jakarta.validation.Valid;
 import lombok.Getter;
 import lombok.Setter;
 
-@Validated
 @Getter
 @Setter
-public class ZoneDetails {
+public class IEAPZoneDetails {
 	@JsonProperty("zoneId")
 	private String zoneId;
 
@@ -33,6 +29,5 @@ public class ZoneDetails {
 	private Boolean partnerOPZone;
 
 	@JsonProperty("supportedFlavours")
-	@Valid
 	private List<Flavour> supportedFlavours;
 }

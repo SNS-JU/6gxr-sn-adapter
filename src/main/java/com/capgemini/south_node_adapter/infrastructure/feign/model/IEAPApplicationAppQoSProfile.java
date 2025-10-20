@@ -1,4 +1,4 @@
-package com.capgemini.south_node_adapter.domain.model;
+package com.capgemini.south_node_adapter.infrastructure.feign.model;
 
 import com.capgemini.south_node_adapter.domain.model.constant.LatencyConstraintsEnum;
 import com.capgemini.south_node_adapter.domain.model.constant.MultiUserClientsEnum;
@@ -9,20 +9,20 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class AppQoSProfile {
+public class IEAPApplicationAppQoSProfile {
 
 	@JsonProperty("latencyConstraints")
-	private LatencyConstraintsEnum latencyConstraints = null;
+	private LatencyConstraintsEnum latencyConstraints;
 
 	@JsonProperty("bandwidthRequired")
-	private Integer bandwidthRequired = null;
+	private Integer bandwidthRequired;
 
 	@JsonProperty("multiUserClients")
-	private MultiUserClientsEnum multiUserClients = MultiUserClientsEnum.SINGLE_USER;
+	private MultiUserClientsEnum multiUserClients;
 
 	@JsonProperty("noOfUsersPerAppInst")
-	private Integer noOfUsersPerAppInst = 1;
+	private Integer noOfUsersPerAppInst;
 
 	@JsonProperty("appProvisioning")
-	private Boolean appProvisioning = true;
+	private Boolean appProvisioning;
 }

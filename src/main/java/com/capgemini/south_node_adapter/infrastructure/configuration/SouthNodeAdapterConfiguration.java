@@ -12,7 +12,9 @@ import com.capgemini.south_node_adapter.domain.service.RegisterService;
 import com.capgemini.south_node_adapter.domain.service.SlicesService;
 import com.capgemini.south_node_adapter.infrastructure.feign.IEAPClientNBI;
 import com.capgemini.south_node_adapter.infrastructure.feign.NEFClient;
+import com.capgemini.south_node_adapter.infrastructure.feign.QosiumClient;
 import com.capgemini.south_node_adapter.infrastructure.persistence.repository.CredentialRepository;
+import com.capgemini.south_node_adapter.infrastructure.persistence.repository.GpsiRepository;
 import com.capgemini.south_node_adapter.infrastructure.persistence.repository.LockRepository;
 import com.capgemini.south_node_adapter.infrastructure.persistence.repository.SessionRepository;
 import com.capgemini.south_node_adapter.infrastructure.persistence.repository.SouthNodeNSTRepository;
@@ -35,9 +37,9 @@ public class SouthNodeAdapterConfiguration {
 
 	@Bean
 	LoginService loginService(IEAPClientNBI ieapClientNBI, CredentialRepository credentialRepository,
-			SessionRepository sessionRepository) {
+			SessionRepository sessionRepository, XRProperties xrProperties) {
 		return LoginServiceImpl.builder().ieapClientNBI(ieapClientNBI).credentialRepository(credentialRepository)
-				.sessionRepository(sessionRepository).build();
+				.sessionRepository(sessionRepository).xrProperties(xrProperties).build();
 	}
 
 	@Bean
@@ -48,21 +50,23 @@ public class SouthNodeAdapterConfiguration {
 	}
 
 	@Bean
-	GpsisService gpsisService(XRProperties xrProperties) {
-		return GpsisServiceImpl.builder().xrProperties(xrProperties).build();
+	GpsisService gpsisService(GpsiRepository gpsiRepository, SessionRepository sessionRepository,
+			XRProperties xrProperties) {
+		return GpsisServiceImpl.builder().gpsiRepository(gpsiRepository).sessionRepository(sessionRepository)
+				.xrproperties(xrProperties).build();
 	}
 
 	@Bean
-	SlicesService slicesService(XRProperties xrProperties) {
-		return SlicesServiceImpl.builder().xrProperties(xrProperties).build();
+	SlicesService slicesService(XRProperties xrProperties, SessionRepository sessionRepository) {
+		return SlicesServiceImpl.builder().xrProperties(xrProperties).sessionRepository(sessionRepository).build();
 	}
 
 	@Bean
 	ExperimentService experimentService(IEAPClientNBI ieapClientNBI, SessionRepository sessionRepository,
 			SouthNodeNSTRepository southNodeNSTRepository, XRProperties xrProperties, NEFClient nefClient,
-			LockRepository lockRepository) {
+			LockRepository lockRepository, QosiumClient qosiumClient) {
 		return ExperimentServiceImpl.builder().ieapClientNBI(ieapClientNBI).sessionRepository(sessionRepository)
 				.xrproperties(xrProperties).southNodeNSTRepository(southNodeNSTRepository).nefClient(nefClient)
-				.lockRepository(lockRepository).build();
+				.lockRepository(lockRepository).qosiumClient(qosiumClient).build();
 	}
 }
