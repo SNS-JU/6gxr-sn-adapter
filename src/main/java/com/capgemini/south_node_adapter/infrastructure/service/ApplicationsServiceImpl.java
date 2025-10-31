@@ -11,8 +11,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
-import com.capgemini.south_node_adapter.domain.model.ApplicationsAppDeploymentTcSlices;
 import com.capgemini.south_node_adapter.domain.model.Application;
+import com.capgemini.south_node_adapter.domain.model.ApplicationsAppDeploymentTcSlices;
 import com.capgemini.south_node_adapter.domain.service.ApplicationsService;
 import com.capgemini.south_node_adapter.infrastructure.auth.SessionUtil;
 import com.capgemini.south_node_adapter.infrastructure.configuration.XRProperties;
@@ -80,7 +80,7 @@ public class ApplicationsServiceImpl implements ApplicationsService {
 							slice.setTcSlice(mappedTcSlice);
 
 							List<String> allowedFlavours = xrProperties.getTcSlices().get(mappedTcSlice)
-									.getAllowedFlavours().entrySet().stream().map(entry -> entry.getKey()).toList();
+									.getAllowedFlavours().entrySet().stream().map(Entry::getKey).toList();
 
 							List<String> existingFlavours = zoneDetails.get(ieapZoneDetails.getZoneId())
 									.getSupportedFlavours().stream().map(Flavour::getFlavourId).toList();

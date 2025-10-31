@@ -3,6 +3,8 @@ server:
     context-path: /south-node-adapter/v3
   
 spring:
+  config:
+    import: optional:file:.env[.properties]
   application:
     name: south-node-adapter
   data:
@@ -13,7 +15,7 @@ ieapAccess:
   credentials:
     grant_type: client_credentials
     client_id: ieap-client
-    client_secret: S6uboXdE8tJHLwJ5mUP4ov1q9NjbPwci
+    client_secret: ${IEAP_CLIENT_SECRET}
     realm: mecportal
     scope: all
   bearerPrefix: Bearer
