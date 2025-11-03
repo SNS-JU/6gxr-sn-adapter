@@ -78,6 +78,7 @@ class ApplicationsServiceImplTest {
 			Map<String, TCSlice> tcSliceMap = new HashMap<String, TCSlice>();
 			TCSlice sampleTcSlice = new TCSlice();
 			sampleTcSlice.setIeapZone("zoneId");
+			sampleTcSlice.setAllowedFlavours(Map.of("flavour","infraId"));
 			tcSliceMap.put("tcSlice", sampleTcSlice);
 			
 			properties.setTcSlices(tcSliceMap);
